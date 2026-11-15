@@ -1,14 +1,85 @@
-# PulsePort Analytics
+<div align="center">
+
+# ⚓ PulsePort Analytics
+
+**Statistically rigorous product analytics for funnels, A/B tests and AI-model evaluations, on your own data.**
 
 [![CI](https://github.com/yakov-ashgar27/PulsePort-Analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/yakov-ashgar27/PulsePort-Analytics/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/live%20demo-online-34d399?logo=githubpages&logoColor=white)](https://yakov-ashgar27.github.io/PulsePort-Analytics/)
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
-![SciPy](https://img.shields.io/badge/SciPy-stats-8CAAE6?logo=scipy&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![SciPy](https://img.shields.io/badge/SciPy-verified-8CAAE6?logo=scipy&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
-**Analyse your own product data (funnels, A/B tests and AI-model evaluations) with rigorous statistics and plain-language insights.** It works for any product or industry, and the full pipeline ships with a maritime-portal demo (in the spirit of *myZIM* / *Maersk*).
+### [🔗 Open the app](https://yakov-ashgar27.github.io/PulsePort-Analytics/): free, no install, no sign-up. Your data never leaves the browser.
 
-### 🔗 [Open the app](https://yakov-ashgar27.github.io/PulsePort-Analytics/) · free, no install, no sign-up
+<img src="docs/screenshots/data-studio-insights.png" alt="Data Studio: ranked statistical insights from an uploaded e-commerce event log" width="100%">
+
+</div>
+
+---
+
+## Contents
+
+[The problem](#the-problem) · [What it does](#what-it-does) · [Screenshots](#screenshots) · [Data Studio](#data-studio-bring-your-own-data) · [Connectors](#connect-your-data-sources-self-hosted-free) · [Architecture](#architecture) · [Design decisions](#design-decisions) · [Statistical methods](#statistical-methods) · [Quick start](#quick-start) · [Testing](#testing) · [Limitations](#limitations--roadmap)
+
+---
+
+## The problem
+
+Digital teams make product decisions from dashboards every day. Three mistakes recur, and each one is expensive:
+
+| Mistake | What it looks like | What it costs |
+|---|---|---|
+| **Shipping noise** | "Variant B is up 3%, ship it!" The test is underpowered and *p = 0.18*. | Roll-outs of features that do nothing, or harm, and a team that stops trusting experiments. |
+| **Averages hide the problem** | The overall funnel looks fine, while mobile users in one market abandon at twice the rate. | Revenue leaks silently at the highest-intent step. |
+| **Choosing AI on vibes** | An LLM is picked from a few impressive answers, without confidence intervals, hallucination rates or cost per ticket. | Over-paying for accuracy that isn't significantly better, or deploying a model that fabricates answers. |
+
+Most tools stop at charts. **PulsePort turns data into decisions:** every insight comes with the statistical test behind it, a correction for multiple comparisons, and a plain-language recommendation.
+
+## What it does
+
+PulsePort answers three questions for any digital product: a booking portal, an online store, a SaaS app, a bank.
+
+1. **Where are we losing users, and who exactly?** An ordered funnel analysis tests every segment *and segment pair* (e.g. *country × device*) at every step against everyone else. It controls the false-discovery rate, estimates lost conversions, and detects when latency predicts abandonment.
+2. **Did the change actually work?** A/B analysis runs frequentist and Bayesian inference side by side. It adds a sample-ratio-mismatch check, Fisher's exact test for small samples, Holm correction for more than two variants and a pre-registered power rule. The result is an explicit **GO / NO-GO / KEEP RUNNING / STOP** verdict that **prevents false-positive roll-outs**.
+3. **Which AI assistant should we deploy?** Model evaluation reports scores with confidence intervals, hallucination rates against a safety guardrail, P95 latency, cost per 1,000 tickets, and significance tests between models.
+
+It works in two modes:
+
+| | **Data Studio** (public site) | **Full platform** (self-hosted, `docker compose up`) |
+|---|---|---|
+| Data in | CSV upload, paste from Excel or Sheets, Google Sheet / CSV link | Plus PostgreSQL, MySQL, SQLite, Google Analytics 4, server-side CSV |
+| Engine | TypeScript port of the stats engine, **verified against SciPy** | Python / SciPy engine + analytical SQL on PostgreSQL 16 |
+| Privacy | Runs entirely in the browser; nothing is uploaded | Credentials stay on your server, with read-only queries |
+| Cost | Free (GitHub Pages) | Free (open source, your own machine) |
+
+### Example: what it finds on the bundled e-commerce sample
+
+> 🔴 **country × device = BR · mobile under-performs at checkout_start → payment**: 32.6% pass vs 64.4% for everyone else (−31.8 pp, FDR q < 0.0001). Closing the gap is worth ≈24 conversions in the period.
+> 🔴 **Slower checkout load predicts abandonment** at checkout_start → payment: r = −0.23, Holm-adjusted p < 0.0001.
+> 🟢 Desktop out-performs at product_view → add_to_cart (+4.0 pp, q = 0.008).
+
+And on an A/B test with a +2.9% lift (p = 0.18):
+
+> 🟡 **KEEP RUNNING**. Inconclusive, so do not roll out yet. The test has only 63% power to detect a +5% effect, and P(B>A) = 90.9% is suggestive but not conclusive. About 48 more days are needed at current traffic.
+
+---
+
+## Screenshots
+
+| A/B Testing Lab: a false positive caught | Funnel & regional bottleneck detector |
+|---|---|
+| <img src="docs/screenshots/ab-lab.png" alt="A/B lab showing KEEP RUNNING verdict, confidence interval and Bayesian posteriors"> | <img src="docs/screenshots/funnel-regions.png" alt="Funnel, trend and P95-latency bottleneck detector by region"> |
+| **Data Studio: automatic detection & column mapping** | **Segment × step diagnostics with FDR control** |
+| <img src="docs/screenshots/data-studio-mapping.png" alt="Data Studio detecting dataset type and mapping columns"> | <img src="docs/screenshots/data-studio-segments.png" alt="Table of segment by step comparisons with q-values and lost conversions"> |
+| **AI model evaluation: accuracy vs cost, safety** | **One-click management brief** |
+| <img src="docs/screenshots/ai-evaluation.png" alt="AI model comparison with confidence intervals, cost and hallucination guardrail"> | <img src="docs/screenshots/management-brief.png" alt="Executive brief with hypothesis, evidence, risk and Go/No-Go"> |
+
+---
 
 ## Data Studio: bring your own data
 
@@ -16,24 +87,26 @@
 |---|---|
 | **1. Connect** | Upload a CSV, paste a table copied from Excel or Google Sheets, or connect a **Google Sheet / public CSV URL**. Re-connect any time to refresh with live data. |
 | **2. Detect & map** | Columns are profiled (id, timestamp, category, number, boolean) and the dataset type is detected. Every mapping can be changed, and any column names work. |
-| **3. Analyse** | The same statistics as the Python engine run **in your browser**, verified against SciPy on 22 test groups. Your data is never uploaded. |
+| **3. Analyse** | The same statistics as the Python engine run **in your browser**, verified against SciPy on 22 test groups. |
 | **4. Act** | Insights are ranked by severity and business impact. Export a Markdown report or a CSV of the results. |
 
 **Supported datasets**
 
 | Type | Minimum columns | What you get |
 |---|---|---|
-| **Funnel, aggregated** | step, users (optional: segment columns) | The same funnel and segment × step diagnostics from counts, e.g. a GA4 export or a `GROUP BY` result. Warns when counts aren't nested. |
-| **Event log / funnel** | session or user id, event name (optional: timestamp, latency, up to 3 segment columns) | Ordered funnel. Every segment **and segment pair** (e.g. country × device) is tested at every step against everyone else, with Benjamini–Hochberg FDR control and an estimate of lost conversions. You also get the latency ↔ abandonment link (Holm-adjusted), a daily trend with a 7-day MA, and a week-over-week change alert. |
-| **A/B test, per user** | variant, converted 0/1 (optional: numeric metric, timestamp, segments) | Sample-ratio-mismatch check, z / χ² / **Fisher exact** for small samples, Katz CI, Holm correction for more than two variants, Beta-Binomial P(B>A) and expected loss, power at your MDE, days remaining, Mann-Whitney and Welch on the metric, effect reversals by segment, and a GO / NO-GO / KEEP RUNNING / STOP verdict. |
+| **Event log / funnel** | session or user id, event name (optional: timestamp, latency, up to 3 segment columns) | Ordered funnel. Every segment **and segment pair** is tested at every step against everyone else, with Benjamini–Hochberg FDR control and an estimate of lost conversions. You also get the latency ↔ abandonment link (Holm-adjusted), a daily trend with a 7-day MA, and a week-over-week change alert. |
+| **Funnel, aggregated** | step, users (optional: segment columns) | The same diagnostics from counts, e.g. a GA4 export or a `GROUP BY` result. Warns when counts aren't nested. |
+| **A/B test, per user** | variant, converted 0/1 (optional: numeric metric, timestamp, segments) | Sample-ratio-mismatch check, z / χ² / **Fisher exact** for small samples, Katz CI, Holm correction for more than two variants, Beta-Binomial P(B>A) and expected loss, power at your MDE, days remaining, Mann-Whitney and Welch on the metric, effect reversals by segment, and a verdict. |
 | **A/B test, summary** | variant, users, conversions | The same, from aggregated counts. |
 | **AI evaluation log** | model, score (optional: hallucination flag, latency, cost, category) | Mean score with t-CI, Wilson CI on hallucination, Kruskal-Wallis, Welch on the top two, χ² on safety, a category leaderboard, a cost trade-off and a guardrail verdict. |
 
-Five sample datasets ship with the app (shipping portal, **e-commerce checkout**, A/B per user, A/B summary, AI evaluation) so anyone can try it in one click.
+Five sample datasets ship with the app: a shipping portal, an **e-commerce checkout**, an A/B test per user, an A/B summary and an AI evaluation log. Anyone can try it in one click.
+
+---
 
 ## Connect your data sources (self-hosted, free)
 
-The public site analyses files and Google Sheets. In the self-hosted version (`docker compose up`) the **Your Data → Database / GA4** tab also connects directly to:
+In the self-hosted version, the **Your Data → Database / GA4** tab connects directly to:
 
 | Source | How it connects | Notes |
 |---|---|---|
@@ -56,27 +129,16 @@ The public site analyses files and Google Sheets. In the self-hosted version (`d
 
 **Try it instantly:** click **Use bundled demo database**. That queries the PostgreSQL that ships with the stack.
 
-### Connect Google Analytics 4 (one-time, ~5 minutes, free)
+<details>
+<summary><b>Connect Google Analytics 4 (one-time, ~5 minutes, free)</b></summary>
+
 1. In [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Google Analytics Data API**.
 2. Create a **service account** → *Keys* → *Add key* → JSON. Save it as `connectors/secrets/ga4-service-account.json` (it's git-ignored).
 3. In GA4, go to *Admin → Property access management*. Add the service account's e-mail as **Viewer**.
 4. Copy the numeric **Property ID** from *Admin → Property details*. Then run `docker compose up` and pick **Google Analytics 4** in the Data Studio.
 
 GA4 returns *users per event* (aggregated). For exact per-user journeys, enable the free **GA4 → BigQuery export** and query the event table with SQL.
-
-## Demo: the full server pipeline
-
-The *Demo* tabs show the production architecture on a synthetic 50,000-session maritime portal with known ground truth. Data flows PostgreSQL 16 → analytical SQL → FastAPI → SciPy engine. The live site serves a static snapshot that CI rebuilds on every push. For the full live API, run `docker compose up`.
-
-This is not a CRUD app or an LLM wrapper. Every number on the dashboard comes from one of three sources:
-
-| Layer | What it does | Where |
-|---|---|---|
-| **Analytical SQL** | Funnels, cohorts, P95 latency, rankings via CTEs, `LAG()`, `RANK()`, `SUM() OVER ()`, `PERCENTILE_CONT`, `CORR` | [`backend/app/analytics/sql_queries.py`](backend/app/analytics/sql_queries.py) |
-| **Statistical engine** | Two-proportion z, χ², Mann-Whitney U, Katz CI, Cohen's h/d, power analysis, Beta-Binomial posteriors, P(B>A), expected loss | [`backend/app/stats_engine/`](backend/app/stats_engine/) |
-| **AI benchmarking** | Accuracy t-CIs, Wilson CIs on hallucination rate, Kruskal-Wallis, Welch t, χ² independence, cost per 1k tickets | [`backend/app/ai_benchmark/`](backend/app/ai_benchmark/) |
-
-The **Management Brief** turns those outputs into Go / No-Go recommendations with a deterministic rule engine. Every sentence in it traces back to a computed figure, so the brief can't hallucinate.
+</details>
 
 ---
 
@@ -84,38 +146,38 @@ The **Management Brief** turns those outputs into Go / No-Go recommendations wit
 
 ```mermaid
 flowchart LR
-    subgraph Client["React 18 · Vite · TypeScript · Tailwind · Recharts"]
-        K[KPI Overview]
-        F[Funnel & Regional Analytics]
-        AB[A/B Testing Lab]
-        AI[AI Benchmark Studio]
-        EB[Executive Brief]
+    subgraph Browser["Browser · React 18 · TypeScript · Recharts"]
+        DS[Data Studio<br/>CSV · Sheets · paste]
+        TS[TS stats engine<br/>SciPy-verified]
+        DEMO[Demo dashboards<br/>Funnel · A/B · AI · Brief]
+        DS --> TS
     end
 
     subgraph API["FastAPI (async) · Pydantic v2"]
-        R[REST endpoints]
+        CONN[Connectors<br/>read-only SQL · GA4 · CSV]
         SVC[Services<br/>analytics · experiments · brief]
-        STATS[Stats engine<br/>SciPy · NumPy]
-        EVAL[AI evaluator]
+        STATS[Python stats engine<br/>SciPy · NumPy]
         SEED[Seeder<br/>COPY + advisory lock]
     end
 
     subgraph DB["PostgreSQL 16"]
-        T1[(session_events)]
-        T2[(experiment_assignments)]
-        T3[(ai_eval_runs)]
+        T[(session_events<br/>experiment_assignments<br/>ai_eval_runs)]
     end
 
-    Client -- "/api (nginx proxy)" --> R
-    R --> SVC
+    EXT[(Your PostgreSQL / MySQL<br/>SQLite · GA4 · CSV URL)]
+
+    DEMO -- "/api" --> SVC
+    DS -- "/api/connectors" --> CONN
+    CONN -- "READ ONLY tx" --> EXT
     SVC --> STATS
-    SVC --> EVAL
-    SVC -- "raw SQL: CTE · window functions · PERCENTILE_CONT" --> DB
-    EVAL --> DB
-    SEED -- "asyncpg COPY on first start" --> DB
+    SVC -- "CTE · window functions · PERCENTILE_CONT" --> T
+    SEED -- "asyncpg COPY" --> T
 ```
 
-**Request flow for one experiment:**
+The public site is the same React app built in demo mode. CI runs the real pipeline against a throwaway PostgreSQL, exports every API response as a JSON snapshot, and publishes the result to GitHub Pages.
+
+<details>
+<summary><b>Request flow for one experiment</b></summary>
 
 ```mermaid
 sequenceDiagram
@@ -131,64 +193,31 @@ sequenceDiagram
     API->>API: decide() → GO / NO-GO / KEEP RUNNING / STOP
     API-->>UI: ExperimentAnalysis (typed Pydantic schema)
 ```
+</details>
 
 ---
 
-## Quick start
+## Design decisions
 
-```bash
-git clone https://github.com/yakov-ashgar27/PulsePort-Analytics.git
-cd PulsePort-Analytics
-docker compose up --build
-```
-
-| Service | URL |
-|---|---|
-| Dashboard | http://localhost:3000 |
-| API docs (OpenAPI / Swagger) | http://localhost:8000/docs |
-| PostgreSQL | `localhost:5432` (pulseport / pulseport) |
-
-On first start the API seeds **50,000 portal sessions (~110k funnel events), 40,000 experiment assignments and 900 graded AI answers**. It uses PostgreSQL `COPY`, which takes a few seconds. The backend image **runs the statistical test suite during `docker build`**, so a mathematically broken engine never ships.
-
-### Local development (without Docker)
-
-```bash
-# backend
-cd backend
-python3.13 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m pytest                      # statistical engine tests
-export PULSEPORT_DATABASE_URL=postgresql+asyncpg://pulseport:pulseport@localhost:5432/pulseport
-uvicorn app.main:app --reload
-
-# frontend (new terminal)
-cd frontend
-npm install
-npm run dev                           # http://localhost:5173, proxies /api → :8000
-```
-
----
-
-## The seeded dataset (synthetic, with known ground truth)
-
-The data is generated with **known statistical signals**, so the analytics can be checked against ground truth (see `TestSeededSignals` in the tests):
-
-| Signal | Design | What the platform should show |
+| Decision | Why | Trade-off |
 |---|---|---|
-| Regional bottleneck | BR-Santos & CN-Shanghai **mobile** rate-quote latency is log-normal with a median of ≈3.2 s. Users abandon with probability following a logistic curve in latency | P95 > 2.5 s SLA, search→quote ≈50% vs ≈62% global, p < 1e-40, cross-region r ≈ −0.99 |
-| **EXP-01** AI-Assisted Booking Flow | 1,200/10,000 vs 1,368/10,000 (+14.0%) | p ≈ 0.0004, P(B>A) > 99.9% → **GO** |
-| **EXP-02** Predictive ETA Banner | 3,000/10,000 vs 3,087/10,000 (+2.9%) | p ≈ 0.18, power 27% → **KEEP RUNNING** (≈48 more days) |
-| AI evaluation | 300 prompts × 3 models × 4 categories with model-specific accuracy, hallucination, latency and token-price profiles | Leader significantly better (Welch p < 0.001); guardrail flags models over 5% hallucination |
-
-Experiment outcomes are generated with **exact counts** and then shuffled, so the headline p-values are fully reproducible.
-
-> **Note on the AI benchmark:** the evaluation runs are **simulated** and do not measure the real vendors. The UI and the brief label them that way. In production, `run_batch()` would call each provider and grade answers against a rubric. Storage, SQL and statistics would stay the same. Model names and price profiles live in one place: `MODEL_PROFILES` in `seed/generators.py`.
+| **Analyse user data in the browser** | Privacy by construction: data never leaves the device. Hosting costs nothing, and analysis is instant. | Practical up to about 1–2M rows. Larger data should be aggregated in SQL first, via a connector. |
+| **Port the stats engine to TypeScript and test it against SciPy** | One source of truth. The browser must give the *same* numbers as the Python engine, so 22 parity test groups compare against SciPy reference values (erfc to 1e-12, Bayesian P(B>A) to 1e-6). | Two implementations to maintain, so parity is enforced in CI. |
+| **Frequentist *and* Bayesian, side by side** | p-values answer "is it real?". P(B>A) and expected loss answer "what's the risk if we ship?". Executives need both. | More numbers on screen, so the verdict summarises them. |
+| **Power at a pre-registered MDE, not "observed power"** | Observed power is a restatement of the p-value and would make STOP unreachable. | You need to choose an MDE (default +5%). |
+| **FDR (Benjamini–Hochberg) across segment × step tests** | Testing 6 countries × 2 devices × 4 steps × pairs means hundreds of comparisons. Without correction, false alarms are guaranteed. | Slightly less sensitive to tiny effects. |
+| **Pairs reported only when they add information** | "Mobile in Norfolk" is not a finding if *all* mobile is equally weak. A pair is reported only when it is worse than both of its parts. | Some real interactions with small effects stay in the table rather than the headline. |
+| **SRM check before any A/B verdict** | A broken 50/50 split invalidates the whole test. It's the most common real-world A/B bug. | None. |
+| **Rule-based management brief, not an LLM** | Every sentence traces back to a computed number, so the brief can't hallucinate. | Less flowing prose. |
+| **Two independent read-only layers for SQL** | Static checks can be bypassed; a `READ ONLY` transaction can't. CI tests the second layer with the first disabled. | A column literally named `lock`, `set` or `call` must be quoted or aliased. |
+| **Synthetic demo with known ground truth** | The planted signals (a regional bottleneck, a 14% lift, an underpowered test) let tests verify that the analytics *find what was planted*. | The demo isn't real company data. The Data Studio is for that. |
 
 ---
 
 ## Statistical methods
 
-### Frequentist (`stats_engine/frequentist.py`)
+<details>
+<summary><b>Frequentist</b> (<code>stats_engine/frequentist.py</code>, <code>lib/stats.ts</code>)</summary>
 
 **Two-proportion z-test (pooled):**
 
@@ -196,7 +225,7 @@ $$
 z = \frac{\hat p_B - \hat p_A}{\sqrt{\bar p(1-\bar p)\left(\frac{1}{n_A}+\frac{1}{n_B}\right)}}, \qquad \bar p = \frac{x_A + x_B}{n_A + n_B}
 $$
 
-**Pearson χ²** on the 2×2 table (`scipy.stats.chi2_contingency`, no Yates correction, so χ² = z² exactly. A unit test asserts this).
+**Pearson χ²** on the 2×2 table, without Yates correction, so χ² = z² exactly. A unit test asserts this. When an expected cell count is below 5, **Fisher's exact test** is used instead.
 
 **Relative-uplift CI (Katz log risk-ratio):** asymmetric and always > −100%:
 
@@ -206,7 +235,7 @@ $$
 
 **Effect sizes:** Cohen's $h = 2\arcsin\sqrt{p_B} - 2\arcsin\sqrt{p_A}$; Cohen's $d$ with pooled SD; rank-biserial $r = 2U_A/(n_An_B) - 1$.
 
-**Mann-Whitney U** (two-sided) for the skewed time-to-quote metric. A t-test's normality assumption fails for log-normal latencies.
+**Mann-Whitney U** (two-sided, with tie and continuity correction) and **Welch's t** handle skewed continuous metrics.
 
 **Sample size (Fleiss):**
 
@@ -214,9 +243,13 @@ $$
 n = \frac{\left[z_{1-\alpha/2}\sqrt{2\bar p\bar q} + z_{1-\beta}\sqrt{p_1q_1 + p_2q_2}\right]^2}{(p_2-p_1)^2}
 $$
 
-Verified against the textbook value (10% → 12%, α = 0.05, power 0.8 ⇒ **3,841 per arm**) and cross-checked against `statsmodels.NormalIndPower`.
+This is verified against the textbook value (10% → 12%, α = 0.05, power 0.8 ⇒ **3,841 per arm**) and cross-checked against `statsmodels`.
 
-### Bayesian (`stats_engine/bayesian.py`)
+**Multiple comparisons:** Benjamini–Hochberg q-values for segment diagnostics; Holm step-down for multi-arm tests and latency checks. **SRM:** χ² goodness-of-fit against the planned split.
+</details>
+
+<details>
+<summary><b>Bayesian</b> (<code>stats_engine/bayesian.py</code>)</summary>
 
 Conjugate model: prior $\text{Beta}(1,1)$, posterior $\text{Beta}(1 + x,\; 1 + n - x)$.
 
@@ -224,32 +257,28 @@ $$
 P(p_B > p_A) = \int_0^1 f_B(x)\,F_A(x)\,dx
 $$
 
-This integral is computed by adaptive quadrature over the posterior's support. It is validated against Evan Miller's closed form to 1e-7, and the Monte-Carlo estimate (200k draws) is reported alongside it.
+The integral is computed by adaptive quadrature (Simpson's rule in the browser). It is validated against Evan Miller's closed form to 1e-7, with a Monte-Carlo estimate reported alongside.
 
 **Expected loss** of shipping B: $\mathbb{E}[\max(p_A - p_B, 0)]$. A test checks the identity $\mathbb{E}[\text{loss}_B] - \mathbb{E}[\text{loss}_A] = \mathbb{E}[p_A] - \mathbb{E}[p_B]$.
+</details>
 
-The API returns a **100-point PDF curve** `(x, control_pdf, variant_pdf)` for Recharts. The tests check that it integrates to 1.
-
-### Decision rule (`services/experiments.py`)
+<details>
+<summary><b>Decision rule</b></summary>
 
 | Verdict | Condition |
 |---|---|
 | **GO** | p < α, uplift > 0, P(B>A) ≥ 95%, expected loss < 0.1 pp |
-| **NO-GO** | p < α and uplift < 0 |
-| **KEEP RUNNING** | not significant **and** power to detect the pre-registered MDE (+5%) < 80% |
+| **NO-GO** | p < α and uplift < 0, or a sample-ratio mismatch |
+| **KEEP RUNNING** | not significant **and** power to detect the pre-registered MDE < 80% |
 | **STOP** | not significant although the test *could* detect the MDE, so there's no worthwhile effect |
+</details>
 
-Using power at a **pre-registered MDE** instead of post-hoc "observed power" is deliberate. Observed power is just a restatement of the p-value, and it would make STOP unreachable.
-
----
-
-## Sample SQL
-
-**Funnel with step conversion via `LAG()`** (from `FUNNEL`):
+<details>
+<summary><b>Sample analytical SQL</b> (<code>analytics/sql_queries.py</code>)</summary>
 
 ```sql
-WITH scoped_sessions AS (...),            -- filter on PORTAL_VISIT, typed binds
-session_flags AS (                        -- one row per session (conditional aggregation)
+-- Funnel with step conversion via LAG()
+WITH session_flags AS (                    -- one row per session (conditional aggregation)
     SELECT s.session_id,
            BOOL_OR(e.stage = 'ROUTE_SEARCH')      AS did_search,
            BOOL_OR(e.stage = 'RATE_QUOTE')        AS did_quote,
@@ -257,7 +286,7 @@ session_flags AS (                        -- one row per session (conditional ag
     FROM scoped_sessions s JOIN session_events e USING (session_id)
     GROUP BY s.session_id
 ),
-funnel AS (                               -- unpivot with LATERAL VALUES
+funnel AS (                                -- unpivot with LATERAL VALUES
     SELECT v.* FROM stage_totals t
     CROSS JOIN LATERAL (VALUES (1,'PORTAL_VISIT',t.portal_visit), ...) v(step_order, stage, sessions)
 )
@@ -266,93 +295,125 @@ SELECT stage, sessions,
        ROUND(100.0 * sessions / NULLIF(FIRST_VALUE(sessions) OVER w, 0), 2) AS cumulative_conversion_pct
 FROM funnel
 WINDOW w AS (ORDER BY step_order);
-```
 
-**Bottleneck detector: P95 vs SLA + latency↔conversion correlation:**
-
-```sql
+-- Bottleneck detector: P95 vs SLA and latency ↔ conversion correlation
 SELECT region,
-       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY quote_latency_ms)                                   AS p95_latency_ms,
+       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY quote_latency_ms)                                     AS p95_latency_ms,
        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY quote_latency_ms) FILTER (WHERE device_type='Mobile') AS p95_mobile_ms,
-       CORR(quote_latency_ms, reached_quote)                                                            AS latency_conv_corr
+       CORR(quote_latency_ms, reached_quote)                                                              AS latency_conv_corr
 FROM searched
 GROUP BY region;
--- outer query: CORR(p95, quote_rate) OVER () across regions, SLA breach & bottleneck flags
 ```
 
-Optional filters use `CAST(:param AS TYPE) IS NULL OR col = CAST(:param AS TYPE)`. One prepared statement covers every filter combination, and the explicit casts let asyncpg prepare it without type inference errors.
+Optional filters use `CAST(:param AS TYPE) IS NULL OR col = CAST(:param AS TYPE)`. One prepared statement covers every filter combination.
+</details>
 
 ---
 
-## API
+## Quick start
+
+**Use it now:** open the [live app](https://yakov-ashgar27.github.io/PulsePort-Analytics/), go to *Your Data*, and upload a CSV or try a sample.
+
+**Run the full platform** (Docker, free):
+
+```bash
+git clone https://github.com/yakov-ashgar27/PulsePort-Analytics.git
+cd PulsePort-Analytics
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| App | http://localhost:3000 |
+| API docs (OpenAPI / Swagger) | http://localhost:8000/docs |
+| PostgreSQL | `localhost:5432` (pulseport / pulseport) |
+
+On first start the API seeds **50,000 portal sessions (~110k events), 40,000 experiment assignments and 900 graded AI answers** with PostgreSQL `COPY`, which takes a few seconds. The backend image **runs the statistical test suite during `docker build`**, so a mathematically broken engine never ships.
+
+<details>
+<summary><b>Local development without Docker</b></summary>
+
+```bash
+cd backend && python3.13 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt && python -m pytest
+export PULSEPORT_DATABASE_URL=postgresql+asyncpg://pulseport:pulseport@localhost:5432/pulseport
+uvicorn app.main:app --reload
+
+cd frontend && npm install && npm test && npm run dev   # http://localhost:5173 (proxies /api → :8000)
+```
+</details>
+
+<details>
+<summary><b>REST API</b></summary>
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/kpis` | Executive KPIs (filterable) |
-| GET | `/api/funnel` | 4-stage funnel with LAG() conversions |
-| GET | `/api/analytics/regions` | Region × device table, ranked |
-| GET | `/api/analytics/bottlenecks` | SLA / P95 detector + z-test vs rest |
-| GET | `/api/analytics/trend` | Daily conversion + 7-day MA |
-| GET | `/api/experiments` · `/api/experiments/{id}` | Experiment list / full analysis |
-| POST | `/api/stats/power-analysis` | Sample size, days to significance |
-| GET | `/api/ai-benchmark?category=` | Model metrics, CIs, tests, category matrix |
-| POST | `/api/ai-benchmark/run` | Simulate and persist a new evaluation batch |
+| GET | `/api/kpis` · `/api/funnel` · `/api/analytics/{regions,bottlenecks,trend}` | Demo analytics (filter by `region`, `device_type`, `date_from`, `date_to`) |
+| GET | `/api/experiments` · `/api/experiments/{id}` | Experiment list / full analysis with verdict |
+| POST | `/api/stats/power-analysis` | Sample size and days to significance |
+| GET / POST | `/api/ai-benchmark` · `/api/ai-benchmark/run` | Model metrics, tests; simulate a new batch |
 | GET | `/api/executive-brief` | Structured memo + Markdown |
-
-Filters on analytics endpoints: `region`, `device_type`, `date_from`, `date_to` (ISO-8601).
+| GET / POST | `/api/connectors` · `/api/connectors/test` · `/api/connectors/query` | Data-source connectors (read-only) |
+</details>
 
 ---
 
 ## Testing
 
-**Browser engine:** `cd frontend && npm test` runs 21 test groups. They check the TypeScript statistics against SciPy reference values (erfc to 1e-12, incomplete beta, t, χ², Fisher exact, Mann-Whitney with ties, Kruskal-Wallis, BH/Holm, Wilson, Bayesian P(B>A) to 1e-6), plus end-to-end Data Studio runs on every sample dataset. To regenerate the references, run `python -m scripts.make_stats_fixtures` (backend).
+Each layer is tested against **first principles or an independent reference**, never against itself. All of it runs in CI on every push.
 
-**Python engine:**
+| Suite | What it proves |
+|---|---|
+| **Python engine**: 60 tests (`backend/tests`) | Hand-computed z, χ² = z², the textbook sample size, Evan Miller's closed form for P(B>A), Wilson reference values, a power round-trip, the expected-loss identity, PDF normalisation, the GO/NO-GO/KEEP RUNNING/STOP rules, SQL safety rules, and the GA4 & SQLite connectors. |
+| **Browser engine**: 22 test groups (`frontend/src/lib/**/*.test.ts`) | Parity with SciPy for every function, plus end-to-end Data Studio runs on every sample, including that the planted bottlenecks and verdicts are *found*. |
+| **API smoke test** against a real PostgreSQL | Seeds the database, calls every endpoint, and asserts that the designed signals surface through SQL → stats → API. |
+| **Connector test** against real PostgreSQL + MySQL | Round-trips data, checks the row cap and the API guard, and proves that **the database itself blocks writes** with the static check disabled. |
+| **Frontend** | Strict TypeScript typecheck and production build. |
 
 ```bash
-cd backend && python -m pytest -v                           # 40+ math / decision-rule tests
-PULSEPORT_DATABASE_URL=... python -m scripts.smoke_test     # end-to-end against real Postgres
+cd backend && python -m pytest -v
+cd frontend && npm test
 ```
-
-The tests check against **first principles, not against the engine itself**: hand-computed z, χ² = z², the textbook sample size, Evan Miller's closed form for P(B>A), the Wilson interval reference values, a power round-trip (n → power ≈ 0.80), the expected-loss identity, PDF normalisation, and that the seeded data reproduces its designed p-values.
-
-CI (`.github/workflows/ci.yml`) runs the unit tests, then a seeded-Postgres smoke test of every endpoint, then the frontend typecheck, the calculator parity test and the build. `.github/workflows/pages.yml` exports the snapshots and publishes the live demo to the `gh-pages` branch at no cost.
 
 ---
 
 ## Project structure
 
 ```text
-pulseport-analytics/
-├── docker-compose.yml
-├── .github/workflows/ci.yml
 ├── backend/
-│   ├── Dockerfile · requirements.txt · pytest.ini
-│   ├── scripts/smoke_test.py            # end-to-end API test against Postgres
-│   ├── tests/
-│   │   ├── test_stats_engine.py         # math verification (p-values, power, posteriors, seeds)
-│   │   └── test_decision_rules.py       # GO / NO-GO / KEEP RUNNING / STOP
-│   └── app/
-│       ├── main.py · config.py · database.py · models.py · schemas.py
-│       ├── seed/          generators.py (pure, deterministic) · maritime_seeder.py (COPY)
-│       ├── stats_engine/  frequentist.py · bayesian.py
-│       ├── analytics/     sql_queries.py
-│       ├── ai_benchmark/  metrics.py (pure) · evaluator.py (DB)
-│       └── services/      analytics.py · experiments.py · executive_brief.py
-└── frontend/
-    ├── Dockerfile (multi-stage → nginx) · nginx.conf · vite.config.ts
-    └── src/
-        ├── App.tsx · api/client.ts · hooks/useApi.ts · types/analytics.ts
-        └── components/  KpiOverview · FunnelAnalytics · AbTestLab · AiBenchmarkStudio · ExecutiveBriefModal
+│   ├── app/
+│   │   ├── stats_engine/   frequentist.py · bayesian.py           # SciPy / NumPy inference
+│   │   ├── analytics/      sql_queries.py                         # CTEs, window functions, PERCENTILE_CONT
+│   │   ├── services/       analytics · experiments · executive_brief
+│   │   ├── ai_benchmark/   metrics.py (pure) · evaluator.py (DB)
+│   │   ├── connectors/     service.py · safety.py · models.py     # read-only SQL, GA4, CSV
+│   │   ├── seed/           generators.py (deterministic) · maritime_seeder.py (COPY)
+│   │   └── main.py · config.py · database.py · models.py · schemas.py
+│   ├── tests/              stats engine · decision rules · connectors
+│   └── scripts/            smoke_test · connector_test · export_static · make_samples · make_stats_fixtures
+├── frontend/
+│   ├── src/lib/            stats.ts (SciPy-verified) · data/{csv,detect,analyze}.ts
+│   ├── src/components/     DataStudio · ConnectPanel · FunnelAnalytics · AbTestLab · AiBenchmarkStudio · ExecutiveBriefModal
+│   └── public/samples/     five sample datasets
+├── connectors/             data/ (SQLite files) · secrets/ (GA4 key, git-ignored)
+├── docs/screenshots/
+├── .github/workflows/      ci.yml (4 jobs) · pages.yml (live demo)
+└── docker-compose.yml      PostgreSQL 16 · FastAPI · nginx + React
 ```
-
-## Design notes
-
-- **Colour carries a meaning.** Series colours follow a fixed, colour-vision-deficiency-validated order (blue = control / model 1, orange = variant / model 2, aqua = model 3) and stick to their entity, never its rank. Status colours (good / warning / critical) are reserved for verdicts, and they always come with an icon and a label.
-- **No dual-axis charts.** Daily sessions appear in the tooltip, not on a second y-scale.
-- **Dark and light themes** are each chosen deliberately, not produced by inverting the other. The navy surface keeps the maritime look.
-- Fetches are **cancelled when filters change**, so a slow, stale response can't overwrite a fresh one.
 
 ---
 
-*Data is synthetic. Statistics are computed with SciPy/NumPy, and aggregations run in PostgreSQL 16.*
+## Limitations & roadmap
+
+- **Demo data is synthetic.** The planted signals make the analytics verifiable. The AI benchmark profiles are simulated and don't measure real vendors; they live in `MODEL_PROFILES`. Use the Data Studio for real data.
+- **GA4 returns aggregated counts**, so funnels from it are "users per event", not strictly ordered journeys. For exact journeys, query the GA4 BigQuery export.
+- **The browser handles up to about 1–2M rows.** Aggregate larger data in SQL first.
+- **Roadmap:** BigQuery and Snowflake connectors, CUPED variance reduction, sequential testing (always-valid p-values), and scheduled reports.
+
+---
+
+<div align="center">
+
+**Built by [yakov-ashgar27](https://github.com/yakov-ashgar27)** · MIT licensed · ⭐ Star the repo if it's useful
+
+</div>

@@ -26,15 +26,20 @@ def _pct(x: float, digits: int = 1) -> str:
 def _prob(p: float) -> str:
     """Avoid displaying 100.0% / 0.0% for probabilities that are merely extreme."""
     if p > 0.999:
-        return ">99.9%"
+        return "> 99.9%"
     if p < 0.001:
-        return "<0.1%"
+        return "< 0.1%"
     return f"{p:.1%}"
+
+
+def _rel(v: str) -> str:
+    """Prefix "=" unless the value already carries a relation ("> 99.9%", "< 0.001 pp")."""
+    return v if v[:1] in "<>" else f"= {v}"
 
 
 def _loss(x: float) -> str:
     pp = x * 100
-    return "<0.001 pp" if pp < 0.001 else f"{pp:.3f} pp"
+    return "< 0.001 pp" if pp < 0.001 else f"{pp:.3f} pp"
 
 
 def _experiment_section(e: dict) -> dict:
@@ -45,8 +50,8 @@ def _experiment_section(e: dict) -> dict:
         f"Relative uplift {f['relative_uplift']:+.1%} "
         f"(95% CI {f['uplift_ci_low']:+.1%} to {f['uplift_ci_high']:+.1%}); "
         f"two-proportion z = {f['z_stat']:.2f}, p = {f['p_value_z']:.3g}",
-        f"Bayesian: P(B > A) = {_prob(b['prob_b_beats_a'])}; expected loss if shipped = "
-        f"{_loss(b['expected_loss_b'])}",
+        f"Bayesian: P(B > A) {_rel(_prob(b['prob_b_beats_a']))}; expected loss if shipped "
+        f"{_rel(_loss(b['expected_loss_b']))}",
         f"Achieved power {f['achieved_power']:.0%}; Cohen's h = {f['cohens_h']:.3f}",
     ]
     mw = e["time_to_quote"]
