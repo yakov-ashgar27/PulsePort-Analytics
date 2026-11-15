@@ -225,7 +225,7 @@ function AccuracyCostScatter({ models, order }: { models: ModelMetrics[]; order:
           {models.map((m) => {
             const row = { ...m, err: [m.mean_accuracy - m.accuracy_ci_low, m.accuracy_ci_high - m.mean_accuracy] };
             return (
-              <Scatter key={m.model} name={m.model} data={[row]} fill={colorFor(order, m.model)} stroke="var(--surface)" strokeWidth={2}>
+              <Scatter isAnimationActive={false} key={m.model} name={m.model} data={[row]} fill={colorFor(order, m.model)} stroke="var(--surface)" strokeWidth={2}>
                 <ErrorBar dataKey="err" direction="y" width={6} stroke={colorFor(order, m.model)} strokeWidth={1.5} />
                 <LabelList dataKey="model" position="right" offset={12} style={{ fill: "var(--text-2)", fontSize: 11 }} />
               </Scatter>
@@ -271,7 +271,7 @@ function HallucinationBars({ models, order, guardrail }: { models: ModelMetrics[
               );
             }}
           />
-          <Bar dataKey="rate" radius={[4, 4, 0, 0]} maxBarSize={56}>
+          <Bar isAnimationActive={false} dataKey="rate" radius={[4, 4, 0, 0]} maxBarSize={56}>
             {data.map((d) => (
               <Cell key={d.model} fill={colorFor(order, d.model)} />
             ))}

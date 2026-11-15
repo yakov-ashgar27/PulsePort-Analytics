@@ -238,7 +238,7 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
             }}
           />
           <Line type="monotone" dataKey="conversion_pct" stroke="var(--text-3)" strokeWidth={1} strokeDasharray="3 3" dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="conversion_ma7_pct" stroke="var(--series-1)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+          <Line isAnimationActive={false} type="monotone" dataKey="conversion_ma7_pct" stroke="var(--series-1)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

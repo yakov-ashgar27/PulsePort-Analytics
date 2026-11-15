@@ -703,7 +703,7 @@ function EventsView({ r }: { r: EventsResult }) {
                     }}
                   />
                   <Line dataKey="conversion_pct" stroke="var(--text-3)" strokeDasharray="3 3" strokeWidth={1} dot={false} isAnimationActive={false} />
-                  <Line dataKey="conversion_ma7_pct" stroke="var(--series-1)" strokeWidth={2} dot={false} />
+                  <Line isAnimationActive={false} dataKey="conversion_ma7_pct" stroke="var(--series-1)" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

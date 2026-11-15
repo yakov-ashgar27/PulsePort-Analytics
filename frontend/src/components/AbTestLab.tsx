@@ -255,8 +255,8 @@ function PosteriorChart({ data, meanA, meanB }: { data: PdfPoint[]; meanA: numbe
               );
             }}
           />
-          <Area type="monotone" dataKey="control_pdf" stroke="var(--series-1)" strokeWidth={2} fill="var(--series-1)" fillOpacity={0.15} />
-          <Area type="monotone" dataKey="variant_pdf" stroke="var(--series-2)" strokeWidth={2} fill="var(--series-2)" fillOpacity={0.15} />
+          <Area isAnimationActive={false} type="monotone" dataKey="control_pdf" stroke="var(--series-1)" strokeWidth={2} fill="var(--series-1)" fillOpacity={0.15} />
+          <Area isAnimationActive={false} type="monotone" dataKey="variant_pdf" stroke="var(--series-2)" strokeWidth={2} fill="var(--series-2)" fillOpacity={0.15} />
           <ReferenceLine x={meanA} stroke="var(--series-1)" strokeDasharray="4 4" />
           <ReferenceLine x={meanB} stroke="var(--series-2)" strokeDasharray="4 4" />
         </AreaChart>

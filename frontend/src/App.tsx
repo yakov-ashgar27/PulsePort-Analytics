@@ -55,8 +55,19 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    window.history.replaceState(null, "", `#${tab}`);
+    if (window.location.hash.slice(1) !== tab) window.history.pushState(null, "", `#${tab}`);
   }, [tab]);
+
+  // Back/forward buttons and in-page links (#studio, #ab, …) switch tabs
+  useEffect(() => {
+    const onHash = () => setTab(readTab());
+    window.addEventListener("hashchange", onHash);
+    window.addEventListener("popstate", onHash);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      window.removeEventListener("popstate", onHash);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen">
