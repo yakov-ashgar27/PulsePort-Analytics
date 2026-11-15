@@ -1,5 +1,11 @@
 # PulsePort Analytics
 
+[![CI](https://github.com/yakov-ashgar27/PulsePort-Analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/yakov-ashgar27/PulsePort-Analytics/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![SciPy](https://img.shields.io/badge/SciPy-stats-8CAAE6?logo=scipy&logoColor=white)
+
 **Digital-experience analytics, statistical A/B testing and AI-model evaluation for a global maritime shipping customer portal** (in the spirit of *myZIM* / *Maersk* digital portals).
 
 This is not a CRUD app or an LLM wrapper. Every number on the dashboard comes from one of three sources:
