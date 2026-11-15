@@ -1,0 +1,1 @@
+[{"region":"US - Norfolk","searches":4135,"quotes":2784,"quote_rate_pct":67.33,"global_quote_rate_pct":67.33,"p95_latency_ms":1684.0,"p95_mobile_ms":null,"p95_desktop_ms":1684.0,"global_p95_ms":1684.0,"latency_conv_corr":-0.05,"cross_region_corr":null,"sla_breach":false,"is_bottleneck":false,"p_value_vs_rest":null,"rate_diff_vs_rest_pp":null,"significant":false}]

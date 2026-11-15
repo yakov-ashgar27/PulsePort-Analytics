@@ -1,0 +1,1 @@
+[{"region":"BR - Santos","searches":1571,"quotes":571,"quote_rate_pct":36.35,"global_quote_rate_pct":36.35,"p95_latency_ms":6919.0,"p95_mobile_ms":6919.0,"p95_desktop_ms":null,"global_p95_ms":6919.0,"latency_conv_corr":-0.378,"cross_region_corr":null,"sla_breach":true,"is_bottleneck":false,"p_value_vs_rest":null,"rate_diff_vs_rest_pp":null,"significant":false}]

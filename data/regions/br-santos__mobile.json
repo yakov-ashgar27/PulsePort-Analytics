@@ -1,0 +1,1 @@
+[{"region":"BR - Santos","device_type":"Mobile","sessions":2604,"searches":1571,"quotes":571,"bookings":145,"search_to_quote_pct":36.35,"booking_conversion_pct":5.57,"p50_latency_ms":3230.0,"p95_latency_ms":6919.0,"global_search_to_quote_pct":36.35,"delta_vs_global_pp":0.0,"dropoff_rank":1,"sla_breach":true}]

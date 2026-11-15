@@ -1,0 +1,1 @@
+[{"region":"DE - Hamburg","searches":2357,"quotes":1546,"quote_rate_pct":65.59,"global_quote_rate_pct":65.59,"p95_latency_ms":1967.0,"p95_mobile_ms":1967.0,"p95_desktop_ms":null,"global_p95_ms":1967.0,"latency_conv_corr":-0.045,"cross_region_corr":null,"sla_breach":false,"is_bottleneck":false,"p_value_vs_rest":null,"rate_diff_vs_rest_pp":null,"significant":false}]

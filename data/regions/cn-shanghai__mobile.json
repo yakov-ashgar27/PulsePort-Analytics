@@ -1,0 +1,1 @@
+[{"region":"CN - Shanghai","device_type":"Mobile","sessions":4049,"searches":2499,"quotes":922,"bookings":223,"search_to_quote_pct":36.89,"booking_conversion_pct":5.51,"p50_latency_ms":3183.0,"p95_latency_ms":6773.0,"global_search_to_quote_pct":36.89,"delta_vs_global_pp":0.0,"dropoff_rank":1,"sla_breach":true}]

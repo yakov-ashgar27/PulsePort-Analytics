@@ -1,0 +1,1 @@
+[{"region":"IL - Haifa","searches":4675,"quotes":3098,"quote_rate_pct":66.27,"global_quote_rate_pct":66.27,"p95_latency_ms":1947.0,"p95_mobile_ms":2134.0,"p95_desktop_ms":1762.0,"global_p95_ms":1947.0,"latency_conv_corr":-0.068,"cross_region_corr":null,"sla_breach":false,"is_bottleneck":false,"p_value_vs_rest":null,"rate_diff_vs_rest_pp":null,"significant":false}]
