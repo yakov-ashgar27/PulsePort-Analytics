@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { analyzeAiEval, analyzeEvents, analyzeExperiment, detectStages, toMarkdown } from "./analyze.ts";
+import { analyzeAiEval, analyzeEvents, analyzeExperiment, analyzeFunnelSummary, detectStages, toMarkdown } from "./analyze.ts";
 import { parseCsv } from "./csv.ts";
 import { detectKind, missingRoles, profile, suggestMapping } from "./detect.ts";
 
@@ -103,4 +103,23 @@ test("domain-agnostic: e-commerce checkout funnel with its own step names", () =
   const r = analyzeEvents(t, m, ["product_view", "add_to_cart", "checkout_start", "payment", "order_confirmed"]);
   assert.equal(r.funnel.length, 5);
   assert.ok(r.findings.some((f) => f.value === "BR" && f.q < 0.05 && f.diff_pp < 0));
+});
+
+test("aggregated funnel (GA4-style export): detection and segment diagnostics", () => {
+  const rows = [["eventName", "country", "totalUsers"]];
+  const n: Record<string, number[]> = { IL: [5000, 1600, 500], US: [9000, 3000, 1000], BR: [4000, 1300, 210] };
+  const ev = ["page_view", "add_to_cart", "purchase"];
+  for (const [c, v] of Object.entries(n)) v.forEach((u, i) => rows.push([ev[i]!, c, String(u)]));
+  const t = parseCsv(rows.map((r) => r.join(",")).join("\n"));
+  const cols = profile(t);
+  assert.equal(detectKind(cols, t.rows.length), "funnel_summary");
+  const m = suggestMapping("funnel_summary", cols);
+  assert.equal(m.step, "eventName");
+  assert.equal(m.users, "totalUsers");
+  assert.deepEqual(m.segments, ["country"]);
+  const r = analyzeFunnelSummary(t, m);
+  assert.deepEqual(r.funnel.map((f) => f.sessions), [18000, 5900, 1710]);
+  const br = r.findings.find((f) => f.value === "BR" && f.from_stage === "add_to_cart")!;
+  assert.ok(br.q < 0.001 && br.diff_pp < -10, JSON.stringify(br));
+  assert.equal(r.insights.find((i) => i.level === "critical")?.title, "country = BR under-performs at add_to_cart → purchase");
 });

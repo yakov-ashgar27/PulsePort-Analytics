@@ -16,19 +16,53 @@
 |---|---|
 | **1. Connect** | Upload a CSV, paste a table copied from Excel or Google Sheets, or connect a **Google Sheet / public CSV URL**. Re-connect any time to refresh with live data. |
 | **2. Detect & map** | Columns are profiled (id, timestamp, category, number, boolean) and the dataset type is detected. Every mapping can be changed, and any column names work. |
-| **3. Analyse** | The same statistics as the Python engine run **in your browser**, verified against SciPy on 21 test groups. Your data is never uploaded. |
+| **3. Analyse** | The same statistics as the Python engine run **in your browser**, verified against SciPy on 22 test groups. Your data is never uploaded. |
 | **4. Act** | Insights are ranked by severity and business impact. Export a Markdown report or a CSV of the results. |
 
 **Supported datasets**
 
 | Type | Minimum columns | What you get |
 |---|---|---|
+| **Funnel, aggregated** | step, users (optional: segment columns) | The same funnel and segment × step diagnostics from counts, e.g. a GA4 export or a `GROUP BY` result. Warns when counts aren't nested. |
 | **Event log / funnel** | session or user id, event name (optional: timestamp, latency, up to 3 segment columns) | Ordered funnel. Every segment **and segment pair** (e.g. country × device) is tested at every step against everyone else, with Benjamini–Hochberg FDR control and an estimate of lost conversions. You also get the latency ↔ abandonment link (Holm-adjusted), a daily trend with a 7-day MA, and a week-over-week change alert. |
 | **A/B test, per user** | variant, converted 0/1 (optional: numeric metric, timestamp, segments) | Sample-ratio-mismatch check, z / χ² / **Fisher exact** for small samples, Katz CI, Holm correction for more than two variants, Beta-Binomial P(B>A) and expected loss, power at your MDE, days remaining, Mann-Whitney and Welch on the metric, effect reversals by segment, and a GO / NO-GO / KEEP RUNNING / STOP verdict. |
 | **A/B test, summary** | variant, users, conversions | The same, from aggregated counts. |
 | **AI evaluation log** | model, score (optional: hallucination flag, latency, cost, category) | Mean score with t-CI, Wilson CI on hallucination, Kruskal-Wallis, Welch on the top two, χ² on safety, a category leaderboard, a cost trade-off and a guardrail verdict. |
 
 Five sample datasets ship with the app (shipping portal, **e-commerce checkout**, A/B per user, A/B summary, AI evaluation) so anyone can try it in one click.
+
+## Connect your data sources (self-hosted, free)
+
+The public site analyses files and Google Sheets. In the self-hosted version (`docker compose up`) the **Your Data → Database / GA4** tab also connects directly to:
+
+| Source | How it connects | Notes |
+|---|---|---|
+| **PostgreSQL** | asyncpg | Any SELECT / WITH query. Templates for event logs, A/B tests and AI logs. |
+| **MySQL / MariaDB** | aiomysql | Same. |
+| **SQLite** | aiosqlite, opened read-only | Put files in `connectors/data/`. |
+| **Google Analytics 4** | Official Data API (free quota) | Users per event × country / device / channel, analysed as an aggregated funnel. |
+| **CSV URL** | Fetched by the server | Works when the browser would be blocked by CORS. |
+
+**Safety model**
+- **Two layers of read-only protection.** First, a static check accepts only a single SELECT / WITH statement. Second, **every query runs inside a `READ ONLY` transaction with a timeout**, so the database itself refuses writes. CI proves the second layer separately on real PostgreSQL and MySQL, with the first layer disabled.
+- **Row cap.** Results are limited to `PULSEPORT_CONNECTOR_MAX_ROWS` (default 500k).
+- **Passwords.** They are sent only to your own server and never stored. To keep credentials off the browser entirely, use **saved connections**:
+  ```bash
+  PULSEPORT_CONNECTIONS='{"warehouse":{"type":"postgres","host":"host.docker.internal","database":"analytics","user":"readonly","password":"…"}}'
+  PULSEPORT_ALLOW_ADHOC_CONNECTIONS=false   # only saved connections can be used
+  ```
+- **Path restriction.** SQLite files are opened only from `connectors/data/`, and paths are traversal-checked.
+- **Reaching your own machine.** A database running on your own computer is reachable from Docker as `host.docker.internal`.
+
+**Try it instantly:** click **Use bundled demo database**. That queries the PostgreSQL that ships with the stack.
+
+### Connect Google Analytics 4 (one-time, ~5 minutes, free)
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Google Analytics Data API**.
+2. Create a **service account** → *Keys* → *Add key* → JSON. Save it as `connectors/secrets/ga4-service-account.json` (it's git-ignored).
+3. In GA4, go to *Admin → Property access management*. Add the service account's e-mail as **Viewer**.
+4. Copy the numeric **Property ID** from *Admin → Property details*. Then run `docker compose up` and pick **Google Analytics 4** in the Data Studio.
+
+GA4 returns *users per event* (aggregated). For exact per-user journeys, enable the free **GA4 → BigQuery export** and query the event table with SQL.
 
 ## Demo: the full server pipeline
 

@@ -46,6 +46,45 @@ jobs:
           PULSEPORT_DATABASE_URL: postgresql+asyncpg://pulseport:pulseport@localhost:5432/pulseport
         run: python -m scripts.smoke_test
 
+  connectors:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pulseport
+          POSTGRES_PASSWORD: pulseport
+          POSTGRES_DB: pulseport
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pulseport" --health-interval 5s --health-retries 20
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: shop
+          MYSQL_USER: analyst
+          MYSQL_PASSWORD: analyst
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -proot" --health-interval 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r backend/requirements.txt
+      - name: Live PostgreSQL + MySQL + CSV-URL connector tests (incl. READ ONLY guarantee)
+        working-directory: backend
+        env:
+          PULSEPORT_DATABASE_URL: postgresql+asyncpg://pulseport:pulseport@localhost:5432/pulseport
+          PG_URL: postgresql://pulseport:pulseport@localhost:5432/pulseport
+          MYSQL_URL: mysql://analyst:analyst@127.0.0.1:3306/shop
+          CSV_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/frontend/public/samples/ab_test_summary_eta_banner.csv
+        run: python -m scripts.connector_test
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

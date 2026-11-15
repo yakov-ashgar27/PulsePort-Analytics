@@ -379,6 +379,135 @@ export function analyzeEvents(t: Table, m: Mapping, stageOrder?: string[]): Even
   };
 }
 
+// ============================================================ FUNNEL SUMMARY
+export function summaryStages(t: Table, m: Mapping): { stage: string; sessions: number }[] {
+  const si = col(t, m.step);
+  const ui = col(t, m.users);
+  const tot = new Map<string, number>();
+  for (const r of t.rows) {
+    const u = parseNum(r[ui] ?? "");
+    if (r[si] && Number.isFinite(u)) tot.set(r[si]!, (tot.get(r[si]!) ?? 0) + u);
+  }
+  return [...tot.entries()].map(([stage, n]) => ({ stage, sessions: Math.round(n) })).sort((a, b) => b.sessions - a.sessions);
+}
+
+/**
+ * Aggregated funnel (e.g. GA4 "users per event" by country). Assumes a nested
+ * funnel — users at step k are a subset of users at step k-1 — and warns when
+ * counts increase, which signals non-sequential events or sampling.
+ */
+export function analyzeFunnelSummary(t: Table, m: Mapping, stageOrder?: string[]): EventsResult {
+  const si = col(t, m.step);
+  const ui = col(t, m.users);
+  const segCols = (m.segments ?? []).map((name) => ({ name, i: col(t, name) })).filter((c) => c.i >= 0);
+  const totals = new Map<string, number>();
+  const bySeg = segCols.map(() => new Map<string, Map<string, number>>()); // dim → value → step → users
+  let dropped = 0;
+  for (const r of t.rows) {
+    const step = r[si];
+    const u = parseNum(r[ui] ?? "");
+    if (!step || !Number.isFinite(u) || u < 0) {
+      dropped++;
+      continue;
+    }
+    totals.set(step, (totals.get(step) ?? 0) + u);
+    segCols.forEach((c, d) => {
+      const v = r[c.i] || "(blank)";
+      const mm = bySeg[d]!.get(v) ?? new Map<string, number>();
+      mm.set(step, (mm.get(step) ?? 0) + u);
+      bySeg[d]!.set(v, mm);
+    });
+  }
+  const detected = [...totals.entries()].map(([stage, sessions]) => ({ stage, sessions })).sort((a, b) => b.sessions - a.sessions);
+  const order = (stageOrder?.length ? stageOrder : detected.slice(0, 6).map((d) => d.stage)).filter((s) => totals.has(s));
+  if (order.length < 2) throw new Error("Pick at least two funnel steps.");
+  const reach = order.map((s) => Math.round(totals.get(s)!));
+  const insights: Insight[] = [];
+  const nonNested = order.slice(1).filter((_, k) => reach[k + 1]! > reach[k]!);
+  if (nonNested.length)
+    insights.push({
+      level: "warning",
+      title: "Counts increase between steps",
+      detail: `${nonNested.join(", ")} has more users than the previous step. Aggregated exports count users per event, not ordered journeys. Reorder the steps or use an event log for exact funnels.`,
+      impact: 1e9,
+    });
+  const funnel: FunnelStepResult[] = order.map((stage, k) => ({
+    step_order: k + 1,
+    stage,
+    sessions: reach[k]!,
+    step_conversion_pct: k ? (100 * reach[k]!) / Math.max(reach[k - 1]!, 1) : null,
+    step_dropoff_pct: k ? 100 - (100 * reach[k]!) / Math.max(reach[k - 1]!, 1) : null,
+    cumulative_conversion_pct: (100 * reach[k]!) / Math.max(reach[0]!, 1),
+  }));
+  const last = order.length - 1;
+  let worst = 1;
+  for (let k = 1; k <= last; k++) if (funnel[k]!.step_conversion_pct! < funnel[worst]!.step_conversion_pct!) worst = k;
+  insights.push({
+    level: "warning",
+    title: `Biggest drop-off: ${order[worst - 1]} → ${order[worst]}`,
+    detail: `${fmtPct(Math.max(0, 1 - reach[worst]! / Math.max(reach[worst - 1]!, 1)))} of users lost at this step (${fmtN(Math.max(0, reach[worst - 1]! - reach[worst]!))}). End-to-end ${fmtPct(reach[last]! / Math.max(reach[0]!, 1), 2)}.`,
+    impact: reach[worst - 1]! - reach[worst]!,
+  });
+
+  const conversionsAll = reach[last]!;
+  const downstream = (k: number) => (reach[k]! ? conversionsAll / reach[k]! : 0);
+  const findings: SegmentFinding[] = [];
+  const segRows: SegmentRow[] = [];
+  segCols.forEach((c, d) => {
+    for (const [value, steps] of bySeg[d]!) {
+      const cnt = order.map((s) => Math.round(steps.get(s) ?? 0));
+      if (cnt[0]! < MIN_SEGMENT || cnt[0] === reach[0]) continue;
+      const restFirst = reach[0]! - cnt[0]!;
+      const restLast = reach[last]! - cnt[last]!;
+      if (cnt[last]! <= cnt[0]! && restLast <= restFirst && restFirst > 0) {
+        const tt = S.twoProportionTest(restLast, restFirst, cnt[last]!, cnt[0]!);
+        segRows.push({ dimension: c.name, value, sessions: cnt[0]!, conversions: cnt[last]!, conversion_rate: cnt[last]! / cnt[0]!, delta_vs_rest_pp: tt.absolute_diff * 100, p: tt.p_value_z, q: 1, p95_latency: null });
+      }
+      for (let k = 1; k <= last; k++) {
+        const ent = cnt[k - 1]!;
+        const pass = cnt[k]!;
+        const restEnt = reach[k - 1]! - ent;
+        const restPass = reach[k]! - pass;
+        if (ent < MIN_SEGMENT || restEnt < MIN_SEGMENT || pass > ent || restPass > restEnt) continue;
+        const tt = S.twoProportionTest(restPass, restEnt, pass, ent);
+        const rate = pass / ent;
+        const restRate = restPass / restEnt;
+        findings.push({ dimension: c.name, value, transition: `${order[k - 1]} → ${order[k]}`, from_stage: order[k - 1]!, entries: ent, rate, rest_rate: restRate, diff_pp: (rate - restRate) * 100, p: tt.small_sample && tt.fisher_p !== null ? tt.fisher_p : tt.p_value_z, q: 1, lost_conversions: Math.max(0, (restRate - rate) * ent * downstream(k)) });
+      }
+    }
+  });
+  S.benjaminiHochberg(findings.map((f) => f.p)).forEach((q, i) => (findings[i]!.q = q));
+  S.benjaminiHochberg(segRows.map((f) => f.p)).forEach((q, i) => (segRows[i]!.q = q));
+  findings.sort((a, b) => b.lost_conversions - a.lost_conversions);
+  const seen = new Set<string>();
+  for (const f of findings.filter((x) => x.q < 0.05 && x.diff_pp <= -2)) {
+    const key = `${f.dimension}=${f.value}`;
+    if (seen.has(key) || seen.size >= 3) continue;
+    seen.add(key);
+    insights.push({ level: "critical", title: `${f.dimension} = ${f.value} under-performs at ${f.transition}`, detail: `${fmtPct(f.rate)} continue vs ${fmtPct(f.rest_rate)} for everyone else (${f.diff_pp.toFixed(1)} pp, FDR q = ${fmtP(f.q)}). ≈${fmtN(f.lost_conversions)} conversions lost.`, impact: f.lost_conversions });
+  }
+  if (segCols.length && !seen.size)
+    insights.push({ level: "info", title: "No segment is significantly worse than the rest", detail: `${findings.length} segment × step comparisons tested with FDR control.` });
+  if (dropped) insights.push({ level: "info", title: "Data quality", detail: `${fmtN(dropped)} rows dropped (missing step or invalid count).` });
+
+  return {
+    kind: "events",
+    quality: { rows: t.rows.length, used: t.rows.length - dropped, dropped: dropped ? [{ reason: "missing step / invalid count", count: dropped }] : [] },
+    stages_detected: detected.map((d) => ({ ...d, sessions: Math.round(d.sessions) })),
+    stage_order: order,
+    funnel,
+    sessions: reach[0]!,
+    conversions: conversionsAll,
+    conversion_rate: conversionsAll / Math.max(reach[0]!, 1),
+    segments: segRows,
+    findings,
+    latency: null,
+    trend: [],
+    period_change: null,
+    insights: rank(insights),
+  };
+}
+
 // ================================================================= EXPERIMENT
 export interface ArmSummary {
   variant: string;

@@ -23,6 +23,20 @@ services:
       PULSEPORT_DATABASE_URL: postgresql+asyncpg://pulseport:pulseport@db:5432/pulseport
       PULSEPORT_SEED_ON_STARTUP: "true"
       PULSEPORT_CORS_ORIGINS: '["http://localhost:3000","http://localhost:5173"]'
+      # ---- Data Studio connectors (all optional) ----
+      # Saved connections keep credentials on the server, e.g.
+      # PULSEPORT_CONNECTIONS='{"warehouse":{"type":"postgres","host":"host.docker.internal","database":"analytics","user":"readonly","password":"..."}}'
+      # PULSEPORT_CONNECTIONS: '{"warehouse": {...}}'
+      PULSEPORT_ALLOW_ADHOC_CONNECTIONS: ${PULSEPORT_ALLOW_ADHOC_CONNECTIONS:-true}
+      PULSEPORT_SQLITE_DIR: /data
+      # GA4: drop a service-account key at ./connectors/secrets/ga4-service-account.json
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/ga4-service-account.json
+    volumes:
+      - ./connectors/data:/data:ro
+      - ./connectors/secrets:/secrets:ro
+    extra_hosts:
+      # lets the container reach databases running on your own machine
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     depends_on:

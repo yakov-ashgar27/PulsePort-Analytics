@@ -35,6 +35,14 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
+    # ---- Data Studio connectors (self-hosted) -------------------------------
+    # Saved connections, JSON: {"warehouse": {"type": "postgres", "host": "...", ...}}
+    connections: dict[str, dict] = {}
+    allow_adhoc_connections: bool = True
+    connector_max_rows: int = 500_000
+    connector_timeout_s: int = 60
+    sqlite_dir: str = "/data"
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -13,7 +13,7 @@ export interface ColumnProfile {
   sample: string[];
 }
 
-export type DatasetKind = "events" | "experiment" | "experiment_summary" | "ai_eval";
+export type DatasetKind = "events" | "funnel_summary" | "experiment" | "experiment_summary" | "ai_eval";
 
 export type Role =
   // events
@@ -44,6 +44,12 @@ export const KIND_INFO: Record<DatasetKind, { label: string; description: string
     description: "One row per user action (page view, step, click). Finds where users drop off and which segments struggle.",
     required: ["session_id", "step"],
     optional: ["timestamp", "latency", "segment"],
+  },
+  funnel_summary: {
+    label: "Funnel — aggregated counts",
+    description: "Users (or sessions) per step, optionally split by a segment. Typical of GA4 / analytics exports.",
+    required: ["step", "users"],
+    optional: ["segment"],
   },
   experiment: {
     label: "A/B test — one row per user",
@@ -121,13 +127,13 @@ export function profile(t: Table): ColumnProfile[] {
 const HINTS: Record<Role, RegExp> = {
   session_id: /^(session|user|visitor|customer|client|account|device)?[_ -]?(id|uuid|key)$|session|visitor|user_?id|customer_?id/i,
   timestamp: /timestamp|date|_at$|^ts$|_ts$|created|occurred|assigned|exposed|^time$|event_?time/i,
-  step: /^(event|step|stage|action|page|screen|funnel)(_?name|_?type)?$|event|stage|step/i,
+  step: /^(event|step|stage|action|page|screen|funnel)(_?name|_?type)?$|event|stage|step|eventname/i,
   segment: /region|country|market|segment|device|platform|channel|source|city|plan|tier|browser|os|agency|store|branch/i,
   latency: /latency|duration|load|response|ms$|_ms|seconds|time_to/i,
   variant: /variant|group|arm|bucket|treatment|version|cohort/i,
   converted: /convert|conversion|success|purchase|booked|signup|outcome|clicked|is_|did_/i,
   metric: /revenue|amount|value|order|aov|spend|time|duration|score/i,
-  users: /users|visitors|sessions|participants|n$|count|sample|exposures/i,
+  users: /users|visitors|sessions|participants|n$|count|sample|exposures|totalusers|activeusers/i,
   conversions: /conversions|converted|purchases|signups|successes|orders/i,
   model: /model|llm|engine|assistant|provider/i,
   score: /score|accuracy|grade|rating|correct/i,
@@ -174,7 +180,7 @@ export function suggestMapping(kind: DatasetKind, cols: ColumnProfile[]): Mappin
       used.add(c);
     }
   }
-  if (kind === "events" || kind === "experiment") {
+  if (kind === "events" || kind === "experiment" || kind === "funnel_summary") {
     m.segments = cols
       .filter((c) => !used.has(c.name) && c.type === "category" && c.distinct >= 2 && c.distinct <= 30)
       .map((c) => c.name)
@@ -192,12 +198,15 @@ export function detectKind(cols: ColumnProfile[], rows: number): DatasetKind {
     const opt = KIND_INFO[k].optional.filter((r) => r !== "segment" && m[r]).length;
     return filled === req.length ? 10 + filled * 2 + opt : filled;
   };
-  const kinds: DatasetKind[] = ["experiment_summary", "ai_eval", "experiment", "events"];
+  const kinds: DatasetKind[] = ["experiment_summary", "ai_eval", "experiment", "funnel_summary", "events"];
   let best: DatasetKind = "events";
   let bestScore = -1;
   for (const k of kinds) {
     let s = score(k);
     if (k === "experiment_summary" && rows > 20) s -= 20; // summaries are tiny
+    // Aggregated funnels have no per-user id column; event logs do
+    if (k === "funnel_summary" && cols.some((c) => c.type === "id")) s -= 20;
+    if (k === "events" && !cols.some((c) => c.type === "id")) s -= 5;
     if (s > bestScore) {
       bestScore = s;
       best = k;

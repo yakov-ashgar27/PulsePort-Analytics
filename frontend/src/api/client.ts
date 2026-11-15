@@ -35,6 +35,27 @@ async function snapshot<T>(name: string, signal?: AbortSignal): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface ConnectorsInfo {
+  saved: { name: string; type: string; label: string }[];
+  adhoc_allowed: boolean;
+  ga4_configured: boolean;
+  max_rows: number;
+  sqlite_dir: string | null;
+  types: string[];
+}
+
+export interface TableOut {
+  headers: string[];
+  rows: string[][];
+  row_count: number;
+  truncated: boolean;
+  elapsed_ms: number;
+  source_label: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ConnectorRequest = { connection?: string; source?: Record<string, any>; query?: string; max_rows?: number };
+
 export interface SnapshotInfo {
   generated_at: string;
   files: number;
@@ -95,7 +116,13 @@ const live = {
   runBenchmark: (n_prompts: number) =>
     request<Benchmark>("/ai-benchmark/run", { method: "POST", body: JSON.stringify({ n_prompts }) }),
   brief: (signal?: AbortSignal) => request<ExecutiveBrief>("/executive-brief", { signal }),
+  connectors: (signal?: AbortSignal) => request<ConnectorsInfo>("/connectors", { signal }),
+  connectorTest: (body: ConnectorRequest) =>
+    request<{ ok: boolean; source_label: string; elapsed_ms: number }>("/connectors/test", { method: "POST", body: JSON.stringify(body) }),
+  connectorQuery: (body: ConnectorRequest) => request<TableOut>("/connectors/query", { method: "POST", body: JSON.stringify(body) }),
 };
+
+const SELF_HOSTED = "Database and GA4 connectors run in the free self-hosted version (docker compose up)";
 
 const demo: typeof live = {
   meta: (signal) => snapshot<Meta>("meta", signal),
@@ -112,6 +139,15 @@ const demo: typeof live = {
     throw new ApiError(501, "Live evaluation batches run in the full Docker deployment");
   },
   brief: (signal) => snapshot<ExecutiveBrief>("executive-brief", signal),
+  connectors: async () => {
+    throw new ApiError(501, SELF_HOSTED);
+  },
+  connectorTest: async () => {
+    throw new ApiError(501, SELF_HOSTED);
+  },
+  connectorQuery: async () => {
+    throw new ApiError(501, SELF_HOSTED);
+  },
 };
 
 export const api = IS_DEMO ? demo : live;

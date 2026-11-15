@@ -17,3 +17,9 @@ dist/
 
 # Generated in CI for the static demo
 frontend/public/data/
+
+# Connector secrets & local data (never commit)
+connectors/secrets/*
+!connectors/secrets/.gitkeep
+connectors/data/*
+!connectors/data/.gitkeep

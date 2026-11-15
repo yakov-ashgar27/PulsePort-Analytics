@@ -15,6 +15,7 @@ import {
   OctagonX,
   Play,
   RotateCcw,
+  Server,
   Sparkles,
   Upload,
 } from "lucide-react";
@@ -26,12 +27,14 @@ import {
   analyzeAiEval,
   analyzeEvents,
   analyzeExperiment,
+  analyzeFunnelSummary,
   detectStages,
   type EventsResult,
   type ExperimentResult,
   type Insight,
   listVariants,
   guessControl,
+  summaryStages,
   toMarkdown,
 } from "../lib/data/analyze";
 import { normalizeSourceUrl, parseCsv, type Table, toCsv } from "../lib/data/csv";
@@ -50,6 +53,7 @@ import {
 import { fmtInt, fmtMs, fmtP, fmtPct } from "../lib/format";
 import type { ExperimentAnalysis } from "../types/analytics";
 import { ExperimentDetail } from "./AbTestLab";
+import ConnectPanel from "./ConnectPanel";
 import { CategoryMatrix, TestRow } from "./AiBenchmarkStudio";
 import { Card, ErrorState, LegendItem, NumberField, Pill, TooltipBox } from "./ui";
 
@@ -72,12 +76,22 @@ export default function DataStudio() {
   const [error, setError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const useTable = (table: Table, source: string) => {
+    if (!table.rows.length) throw new Error("The source returned no rows.");
+    if (table.rows.length > 2_000_000) throw new Error("Over 2M rows. Aggregate in SQL first (e.g. GROUP BY step, segment).");
+    setLoaded({ table, cols: profile(table), source });
+    setError(null);
+  };
   const ingest = (text: string, source: string) => {
     try {
-      const table = parseCsv(text);
-      if (table.rows.length > 1_000_000) throw new Error("Files over 1M rows are best analysed with the Docker deployment.");
-      setLoaded({ table, cols: profile(table), source });
-      setError(null);
+      useTable(parseCsv(text), source);
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+  const ingestTable = (table: Table, source: string) => {
+    try {
+      useTable(table, source);
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
     }
@@ -128,7 +142,7 @@ export default function DataStudio() {
             </button>
           </div>
         ) : (
-          <SourcePicker onText={ingest} onUrl={fromUrl} busy={busy} />
+          <SourcePicker onText={ingest} onUrl={fromUrl} onTable={ingestTable} busy={busy} />
         )}
         {error && (
           <p className="mt-3 flex items-start gap-2 text-sm text-critical" role="alert">
@@ -142,8 +156,18 @@ export default function DataStudio() {
 }
 
 // ------------------------------------------------------------------ sources
-function SourcePicker({ onText, onUrl, busy }: { onText: (t: string, s: string) => void; onUrl: (u: string, label?: string) => void; busy: boolean }) {
-  const [tab, setTab] = useState<"file" | "paste" | "url">("file");
+function SourcePicker({
+  onText,
+  onUrl,
+  onTable,
+  busy,
+}: {
+  onText: (t: string, s: string) => void;
+  onUrl: (u: string, label?: string) => void;
+  onTable: (t: Table, s: string) => void;
+  busy: boolean;
+}) {
+  const [tab, setTab] = useState<"file" | "paste" | "url" | "db">("file");
   const [paste, setPaste] = useState("");
   const [url, setUrl] = useState("");
   const [drag, setDrag] = useState(false);
@@ -160,6 +184,7 @@ function SourcePicker({ onText, onUrl, busy }: { onText: (t: string, s: string) 
               ["file", "Upload CSV", Upload],
               ["paste", "Paste table", ClipboardPaste],
               ["url", "Google Sheet / URL", Link2],
+              ["db", "Database / GA4", Server],
             ] as const
           ).map(([id, label, Icon]) => (
             <button
@@ -217,6 +242,7 @@ function SourcePicker({ onText, onUrl, busy }: { onText: (t: string, s: string) 
             </button>
           </div>
         )}
+        {tab === "db" && <ConnectPanel onTable={onTable} />}
         {tab === "url" && (
           <div className="space-y-2">
             <input
@@ -283,7 +309,15 @@ function Workbench({ loaded }: { loaded: Loaded }) {
     setResult(null);
   };
   const missing = missingRoles(kind, mapping);
-  const stages = useMemo(() => (kind === "events" && mapping.session_id && mapping.step ? detectStages(table, mapping) : []), [kind, mapping, table]);
+  const stages = useMemo(
+    () =>
+      kind === "events" && mapping.session_id && mapping.step
+        ? detectStages(table, mapping)
+        : kind === "funnel_summary" && mapping.step && mapping.users
+          ? summaryStages(table, mapping)
+          : [],
+    [kind, mapping, table],
+  );
   const order = stageOrder ?? stages.slice(0, 6).map((s) => s.stage);
   const variants = useMemo(() => (kind.startsWith("experiment") && mapping.variant ? listVariants(table, mapping) : []), [kind, mapping, table]);
 
@@ -296,7 +330,9 @@ function Workbench({ loaded }: { loaded: Loaded }) {
         const r =
           kind === "events"
             ? analyzeEvents(table, mapping, order)
-            : kind === "ai_eval"
+            : kind === "funnel_summary"
+              ? analyzeFunnelSummary(table, mapping, order)
+              : kind === "ai_eval"
               ? analyzeAiEval(table, mapping, guardrail / 100)
               : analyzeExperiment(table, kind === "experiment_summary" ? { variant: mapping.variant, users: mapping.users, conversions: mapping.conversions } : mapping, {
                   control: control ?? undefined,
@@ -340,12 +376,12 @@ function Workbench({ loaded }: { loaded: Loaded }) {
           {roles.map((r) => (
             <RoleSelect key={r} role={r} required={KIND_INFO[kind].required.includes(r)} value={mapping[r]} cols={cols} onChange={(v) => {
               setMapping({ ...mapping, [r]: v });
-              if (r === "step" || r === "session_id") setStageOrder(null);
+              if (r === "step" || r === "session_id" || r === "users") setStageOrder(null);
             }} />
           ))}
         </div>
 
-        {(kind === "events" || kind === "experiment") && catCols.length > 0 && (
+        {(kind === "events" || kind === "experiment" || kind === "funnel_summary") && catCols.length > 0 && (
           <div className="mt-4">
             <div className="mb-1.5 text-xs font-medium text-ink-3">Segments to compare (up to 3; pairs are tested too)</div>
             <div className="flex flex-wrap gap-2">
@@ -372,7 +408,7 @@ function Workbench({ loaded }: { loaded: Loaded }) {
           </div>
         )}
 
-        {kind === "events" && stages.length > 0 && (
+        {(kind === "events" || kind === "funnel_summary") && stages.length > 0 && (
           <StageEditor stages={stages} order={order} onChange={setStageOrder} />
         )}
 

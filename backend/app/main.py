@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from . import schemas as S
 from .ai_benchmark import evaluator
 from .config import get_settings
+from .connectors import service as connectors
+from .connectors.models import ConnectorsInfo, QueryRequest, TableOut
 from .database import Base, engine, get_session
 from .seed.generators import AI_CATEGORIES, DEVICE_TYPES, EXPERIMENTS, REGION_NAMES
 from .seed.maritime_seeder import seed_if_empty
@@ -145,3 +147,20 @@ async def post_ai_benchmark_run(db: DB, req: S.BenchmarkRunRequest | None = None
 @app.get("/api/executive-brief", response_model=S.ExecutiveBrief, tags=["reporting"])
 async def get_executive_brief(db: DB):
     return await build_brief(db)
+
+
+# -------------------------------------------------------------- connectors
+@app.get("/api/connectors", response_model=ConnectorsInfo, tags=["connectors"])
+async def get_connectors():
+    return connectors.info()
+
+
+@app.post("/api/connectors/test", tags=["connectors"])
+async def post_connector_test(req: QueryRequest) -> dict:
+    return await connectors.test(req)
+
+
+@app.post("/api/connectors/query", response_model=TableOut, tags=["connectors"])
+async def post_connector_query(req: QueryRequest):
+    """Fetch a table from a database, GA4 or a remote CSV for analysis in the Data Studio."""
+    return await connectors.fetch(req)
