@@ -32,3 +32,6 @@ export const stageLabel = (s: string) =>
     .split("_")
     .map((w) => w[0]!.toUpperCase() + w.slice(1))
     .join(" ");
+
+/** Relation + value: "= 0.012" or "< 0.0001". */
+export const fmtPEq = (p: number | null | undefined) => (p == null ? "= —" : p < 0.0001 ? "< 0.0001" : `= ${fmtP(p)}`);

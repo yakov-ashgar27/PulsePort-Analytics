@@ -18,7 +18,7 @@ import {
 } from "recharts";
 import { api, IS_DEMO } from "../api/client";
 import { useApi } from "../hooks/useApi";
-import { fmtInt, fmtMs, fmtP, fmtPct, fmtUsd } from "../lib/format";
+import { fmtInt, fmtMs, fmtPct, fmtPEq, fmtUsd } from "../lib/format";
 import type { Benchmark, CategoryCell, ModelMetrics } from "../types/analytics";
 import { Card, ErrorState, LegendItem, Loading, Pill, Select, TooltipBox } from "./ui";
 
@@ -351,7 +351,7 @@ export function TestRow({ name, stat, p }: { name: string; stat: string; p: numb
       <div>
         <div className="font-medium text-ink">{name}</div>
         <div className="tabular text-xs text-ink-3">
-          {stat} · p = {fmtP(p)}
+          {stat} · p {fmtPEq(p)}
         </div>
       </div>
       <Pill tone={sig ? "good" : "neutral"}>{sig ? "Significant" : "Not sig."}</Pill>

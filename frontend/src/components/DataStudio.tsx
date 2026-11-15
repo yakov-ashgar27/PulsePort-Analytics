@@ -50,7 +50,7 @@ import {
   ROLE_LABEL,
   suggestMapping,
 } from "../lib/data/detect";
-import { fmtInt, fmtMs, fmtP, fmtPct } from "../lib/format";
+import { fmtInt, fmtMs, fmtP, fmtPct, fmtPEq } from "../lib/format";
 import type { ExperimentAnalysis } from "../types/analytics";
 import { ExperimentDetail } from "./AbTestLab";
 import ConnectPanel from "./ConnectPanel";
@@ -668,20 +668,23 @@ function EventsView({ r }: { r: EventsResult }) {
                     <span className={s.step_dropoff_pct! > 50 ? "font-medium text-critical" : ""}>{s.step_dropoff_pct!.toFixed(1)}% drop</span>
                   </div>
                 )}
-                <div className="flex items-center gap-3">
-                  <div className="h-9 flex-1 rounded-md bg-surface-2">
-                    <div className="flex h-9 items-center truncate rounded-md bg-s1 px-3 text-xs font-medium text-white" style={{ width: `${Math.max(s.cumulative_conversion_pct, 8)}%` }}>
-                      {s.stage}
-                    </div>
-                  </div>
-                  <div className="tabular w-24 text-right text-sm font-semibold text-ink">{fmtInt(s.sessions)}</div>
+                <div className="mb-1 flex items-baseline justify-between gap-3 text-xs">
+                  <span className="truncate font-medium text-ink" title={s.stage}>
+                    {s.stage}
+                  </span>
+                  <span className="tabular shrink-0 text-sm font-semibold text-ink">
+                    {fmtInt(s.sessions)} <span className="text-[11px] font-normal text-ink-3">· {s.cumulative_conversion_pct.toFixed(1)}%</span>
+                  </span>
+                </div>
+                <div className="h-3 rounded-full bg-surface-2">
+                  <div className="h-3 rounded-full bg-s1" style={{ width: `${Math.max(s.cumulative_conversion_pct, 1.5)}%` }} />
                 </div>
               </li>
             ))}
           </ol>
           {r.latency && (
             <p className="mt-4 rounded-lg border border-line bg-surface-2 p-3 text-xs text-ink-2">
-              <b className="text-ink">Latency link</b> at {r.latency.worst_step}: r = {r.latency.r.toFixed(2)} (p = {fmtP(r.latency.p)}), median {fmtMs(r.latency.p50)}, P95{" "}
+              <b className="text-ink">Latency link</b> at {r.latency.worst_step}: r = {r.latency.r.toFixed(2)} (p {fmtPEq(r.latency.p)}), median {fmtMs(r.latency.p50)}, P95{" "}
               {fmtMs(r.latency.p95)}
             </p>
           )}

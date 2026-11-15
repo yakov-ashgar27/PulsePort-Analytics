@@ -30,6 +30,8 @@ export interface DataQuality {
 const MIN_SEGMENT = 30;
 const fmtPct = (x: number, d = 1) => `${(x * 100).toFixed(d)}%`;
 const fmtP = (p: number) => (p < 0.0001 ? "< 0.0001" : p < 0.01 ? p.toFixed(4) : p.toFixed(3));
+/** "= 0.012" or "< 0.0001" — so sentences read "p < 0.0001", never "p = < 0.0001". */
+const eqP = (p: number) => (p < 0.0001 ? "< 0.0001" : `= ${fmtP(p)}`);
 const fmtN = (n: number) => Math.round(n).toLocaleString("en-US");
 const col = (t: Table, name?: string) => (name ? t.headers.indexOf(name) : -1);
 const rank = (xs: Insight[]) => {
@@ -270,7 +272,7 @@ export function analyzeEvents(t: Table, m: Mapping, stageOrder?: string[]): Even
     insights.push({
       level: "critical",
       title: `${f.dimension} = ${f.value} under-performs at ${f.transition}`,
-      detail: `${fmtPct(f.rate)} pass this step vs ${fmtPct(f.rest_rate)} for everyone else (${f.diff_pp.toFixed(1)} pp, FDR-adjusted q = ${fmtP(f.q)}, n = ${fmtN(f.entries)}). Closing the gap is worth ≈${fmtN(f.lost_conversions)} extra conversions in this period.`,
+      detail: `${fmtPct(f.rate)} pass this step vs ${fmtPct(f.rest_rate)} for everyone else (${f.diff_pp.toFixed(1)} pp, FDR-adjusted q ${eqP(f.q)}, n = ${fmtN(f.entries)}). Closing the gap is worth ≈${fmtN(f.lost_conversions)} extra conversions in this period.`,
       impact: f.lost_conversions,
     });
   const sigGood = findings.filter((f) => f.q < 0.05 && f.diff_pp >= 2).sort((a, b) => b.diff_pp - a.diff_pp);
@@ -278,7 +280,7 @@ export function analyzeEvents(t: Table, m: Mapping, stageOrder?: string[]): Even
     insights.push({
       level: "good",
       title: `${sigGood[0].dimension} = ${sigGood[0].value} out-performs at ${sigGood[0].transition}`,
-      detail: `${fmtPct(sigGood[0].rate)} vs ${fmtPct(sigGood[0].rest_rate)} (+${sigGood[0].diff_pp.toFixed(1)} pp, q = ${fmtP(sigGood[0].q)}). Worth studying what this segment experiences differently.`,
+      detail: `${fmtPct(sigGood[0].rate)} vs ${fmtPct(sigGood[0].rest_rate)} (+${sigGood[0].diff_pp.toFixed(1)} pp, q ${eqP(sigGood[0].q)}). Worth studying what this segment experiences differently.`,
       impact: sigGood[0].entries * 0.01,
     });
   if (segCols.length && !sigBad.length)
@@ -308,7 +310,7 @@ export function analyzeEvents(t: Table, m: Mapping, stageOrder?: string[]): Even
         insights.push({
           level: "critical",
           title: `Slower ${m.latency} predicts abandonment at ${latency.worst_step}`,
-          detail: `Point-biserial r = ${best.r.toFixed(2)} (Holm-adjusted p = ${fmtP(best.p)}, n = ${fmtN(best.n)}). P95 ${m.latency} is ${latency.p95.toFixed(0)} vs median ${latency.p50.toFixed(0)}. Performance work on this step is likely to lift conversion.`,
+          detail: `Point-biserial r = ${best.r.toFixed(2)} (Holm-adjusted p ${eqP(best.p)}, n = ${fmtN(best.n)}). P95 ${m.latency} is ${latency.p95.toFixed(0)} vs median ${latency.p50.toFixed(0)}. Performance work on this step is likely to lift conversion.`,
           impact: (reach[best.k - 1]! - reach[best.k]!) * Math.abs(best.r),
         });
     }
@@ -344,7 +346,7 @@ export function analyzeEvents(t: Table, m: Mapping, stageOrder?: string[]): Even
         insights.push({
           level: tt.absolute_diff < 0 ? "critical" : "good",
           title: `Conversion ${tt.absolute_diff < 0 ? "fell" : "rose"} in the last 7 days`,
-          detail: `${fmtPct(period.prev, 2)} → ${fmtPct(period.last, 2)} versus the previous week (p = ${fmtP(tt.p_value_z)}). ${tt.absolute_diff < 0 ? "Check releases, campaigns or incidents in that window." : ""}`,
+          detail: `${fmtPct(period.prev, 2)} → ${fmtPct(period.last, 2)} versus the previous week (p ${eqP(tt.p_value_z)}). ${tt.absolute_diff < 0 ? "Check releases, campaigns or incidents in that window." : ""}`,
           impact: Math.abs(tt.absolute_diff) * lastW.s,
         });
     }
@@ -484,7 +486,7 @@ export function analyzeFunnelSummary(t: Table, m: Mapping, stageOrder?: string[]
     const key = `${f.dimension}=${f.value}`;
     if (seen.has(key) || seen.size >= 3) continue;
     seen.add(key);
-    insights.push({ level: "critical", title: `${f.dimension} = ${f.value} under-performs at ${f.transition}`, detail: `${fmtPct(f.rate)} continue vs ${fmtPct(f.rest_rate)} for everyone else (${f.diff_pp.toFixed(1)} pp, FDR q = ${fmtP(f.q)}). ≈${fmtN(f.lost_conversions)} conversions lost.`, impact: f.lost_conversions });
+    insights.push({ level: "critical", title: `${f.dimension} = ${f.value} under-performs at ${f.transition}`, detail: `${fmtPct(f.rate)} continue vs ${fmtPct(f.rest_rate)} for everyone else (${f.diff_pp.toFixed(1)} pp, FDR q ${eqP(f.q)}). ≈${fmtN(f.lost_conversions)} conversions lost.`, impact: f.lost_conversions });
   }
   if (segCols.length && !seen.size)
     insights.push({ level: "info", title: "No segment is significantly worse than the rest", detail: `${findings.length} segment × step comparisons tested with FDR control.` });
@@ -620,7 +622,7 @@ export function analyzeExperiment(t: Table, m: Mapping, opts: ExperimentOptions 
     insights.push({
       level: "critical",
       title: "Sample ratio mismatch — results are not trustworthy",
-      detail: `Arm sizes (${armList.map((a) => `${a.variant}: ${fmtN(a.users)}`).join(", ")}) deviate from the planned split (χ² = ${srm.chi2.toFixed(1)}, p = ${fmtP(srm.p)}). Usually a bug in assignment, redirects or tracking. Fix it before reading the lift.`,
+      detail: `Arm sizes (${armList.map((a) => `${a.variant}: ${fmtN(a.users)}`).join(", ")}) deviate from the planned split (χ² = ${srm.chi2.toFixed(1)}, p ${eqP(srm.p)}). Usually a bug in assignment, redirects or tracking. Fix it before reading the lift.`,
       impact: 1e12,
     });
 
@@ -667,14 +669,14 @@ export function analyzeExperiment(t: Table, m: Mapping, opts: ExperimentOptions 
     insights.push({
       level: lvl,
       title: `${c.variant} vs ${control}: ${c.decision.verdict}`,
-      detail: `${c.decision.headline}. Lift ${c.freq.relative_uplift >= 0 ? "+" : ""}${fmtPct(c.freq.relative_uplift)} (95% CI ${fmtPct(c.freq.uplift_ci_low)} … ${fmtPct(c.freq.uplift_ci_high)}), ${others.length > 1 ? "Holm-adjusted " : ""}p = ${fmtP(c.p_adjusted)}, P(B>A) = ${fmtPct(c.bayes.prob_b_beats_a)}.${c.freq.small_sample ? " Small sample: Fisher's exact test used." : ""}`,
+      detail: `${c.decision.headline}. Lift ${c.freq.relative_uplift >= 0 ? "+" : ""}${fmtPct(c.freq.relative_uplift)} (95% CI ${fmtPct(c.freq.uplift_ci_low)} … ${fmtPct(c.freq.uplift_ci_high)}), ${others.length > 1 ? "Holm-adjusted " : ""}p ${eqP(c.p_adjusted)}, P(B>A) = ${fmtPct(c.bayes.prob_b_beats_a)}.${c.freq.small_sample ? " Small sample: Fisher's exact test used." : ""}`,
       impact: Math.abs(c.freq.absolute_diff) * 1e6,
     });
     if (c.metric?.significant)
       insights.push({
         level: c.metric.median_b > c.metric.median_a ? "info" : "info",
         title: `${m.metric}: ${c.variant} differs from ${control}`,
-        detail: `Median ${c.metric.median_a.toFixed(2)} → ${c.metric.median_b.toFixed(2)} (Mann-Whitney p = ${fmtP(c.metric.p_value)}; Welch p = ${fmtP(c.metric.welch_p)}).`,
+        detail: `Median ${c.metric.median_a.toFixed(2)} → ${c.metric.median_b.toFixed(2)} (Mann-Whitney p ${eqP(c.metric.p_value)}; Welch p ${eqP(c.metric.welch_p)}).`,
       });
   }
 
@@ -703,7 +705,7 @@ export function analyzeExperiment(t: Table, m: Mapping, opts: ExperimentOptions 
       insights.push({
         level: "warning",
         title: `Effect reverses for ${opposite[0].dimension} = ${opposite[0].value}`,
-        detail: `Overall lift is ${fmtPct(overall)}, but in this segment it is ${fmtPct(opposite[0].uplift)} (q = ${fmtP(opposite[0].q)}). Consider a targeted rollout.`,
+        detail: `Overall lift is ${fmtPct(overall)}, but in this segment it is ${fmtPct(opposite[0].uplift)} (q ${eqP(opposite[0].q)}). Consider a targeted rollout.`,
         impact: opposite[0].users,
       });
   }
@@ -841,9 +843,9 @@ export function analyzeAiEval(t: Table, m: Mapping, guardrail = 0.05): AiEvalRes
   const second = models[1]!;
   const safe = models.filter((x) => x.passes_guardrail);
   if (welch && welch.p < 0.05)
-    insights.push({ level: "good", title: `${best.model} is significantly more accurate than ${second.model}`, detail: `${best.mean_accuracy.toFixed(1)} vs ${second.mean_accuracy.toFixed(1)} (Welch p = ${fmtP(welch.p)}; Kruskal-Wallis across all models p = ${kw ? fmtP(kw.p) : "—"}).`, impact: 10 });
+    insights.push({ level: "good", title: `${best.model} is significantly more accurate than ${second.model}`, detail: `${best.mean_accuracy.toFixed(1)} vs ${second.mean_accuracy.toFixed(1)} (Welch p ${eqP(welch.p)}; Kruskal-Wallis across all models p = ${kw ? fmtP(kw.p) : "—"}).`, impact: 10 });
   else if (welch)
-    insights.push({ level: "warning", title: `${best.model} and ${second.model} are statistically tied on accuracy`, detail: `Difference ${(best.mean_accuracy - second.mean_accuracy).toFixed(1)} points, Welch p = ${fmtP(welch.p)}. Choose on cost, latency or safety instead, or collect more graded samples.`, impact: 9 });
+    insights.push({ level: "warning", title: `${best.model} and ${second.model} are statistically tied on accuracy`, detail: `Difference ${(best.mean_accuracy - second.mean_accuracy).toFixed(1)} points, Welch p ${eqP(welch.p)}. Choose on cost, latency or safety instead, or collect more graded samples.`, impact: 9 });
   if (!best.passes_guardrail && best.hallucination_rate !== null)
     insights.push({ level: "critical", title: `${best.model} breaches the ${fmtPct(guardrail, 0)} hallucination guardrail`, detail: `Hallucination rate ${fmtPct(best.hallucination_rate)} (95% CI ${fmtPct(best.hallucination_ci_low!)}–${fmtPct(best.hallucination_ci_high!)}). ${safe[0] ? `Safest compliant option: ${safe[0].model}.` : "No model meets the guardrail. Keep a human in the loop."}`, impact: 20 });
   const priced = models.filter((x) => x.cost_per_1k_usd !== null);
@@ -859,7 +861,7 @@ export function analyzeAiEval(t: Table, m: Mapping, guardrail = 0.05): AiEvalRes
       insights.push({ level: "info", title: `${winner.model} leads in "${c}"`, detail: `Best average accuracy in this category (${winner.mean_accuracy.toFixed(1)}), even though ${best.model} leads overall.` });
   }
   if (halTest && halTest.p < 0.05)
-    insights.push({ level: "warning", title: "Hallucination rates differ between models", detail: `χ² = ${halTest.chi2.toFixed(2)}, p = ${fmtP(halTest.p)}. Safety is a real differentiator here, not noise.` });
+    insights.push({ level: "warning", title: "Hallucination rates differ between models", detail: `χ² = ${halTest.chi2.toFixed(2)}, p ${eqP(halTest.p)}. Safety is a real differentiator here, not noise.` });
 
   return {
     kind: "ai_eval",
@@ -885,7 +887,7 @@ export function toMarkdown(r: AnalysisResult, source: string): string {
   } else if (r.kind === "experiment") {
     lines.push("## Arms", "| Variant | Users | Conversions | Rate |", "|---|---:|---:|---:|");
     for (const a of r.arms) lines.push(`| ${a.variant}${a.variant === r.control ? " (control)" : ""} | ${fmtN(a.users)} | ${fmtN(a.conversions)} | ${fmtPct(a.rate, 2)} |`);
-    if (r.srm) lines.push("", `Sample-ratio check: χ² = ${r.srm.chi2.toFixed(2)}, p = ${fmtP(r.srm.p)}`);
+    if (r.srm) lines.push("", `Sample-ratio check: χ² = ${r.srm.chi2.toFixed(2)}, p ${eqP(r.srm.p)}`);
   } else {
     lines.push("## Models", "| Model | n | Accuracy (95% CI) | Hallucination | P95 latency | Cost / 1k |", "|---|---:|---|---:|---:|---:|");
     for (const x of r.models)

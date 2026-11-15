@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { api, IS_DEMO } from "../api/client";
 import { useApi, useDebounced } from "../hooks/useApi";
-import { fmtInt, fmtP, fmtPct, fmtProb } from "../lib/format";
+import { fmtInt, fmtP, fmtPct, fmtPEq, fmtProb } from "../lib/format";
 import type { ExperimentAnalysis, PdfPoint, PowerAnalysisRequest } from "../types/analytics";
 import { Card, ErrorState, LegendItem, Loading, NumberField, Pill, TooltipBox, VerdictBadge } from "./ui";
 
@@ -50,7 +50,7 @@ export default function AbTestLab() {
                 Uplift <b className="text-ink">{fmtPct(e.relative_uplift, 1, true)}</b>
               </span>
               <span>
-                p = <b className="text-ink">{fmtP(e.p_value)}</b>
+                p <b className="text-ink">{fmtPEq(e.p_value)}</b>
               </span>
               <span>
                 P(B&gt;A) <b className="text-ink">{fmtProb(e.prob_b_beats_a)}</b>
@@ -138,8 +138,7 @@ export function ExperimentDetail({ e }: { e: ExperimentAnalysis }) {
 
           {mw && (
             <div className="mt-4 rounded-lg border border-line bg-surface-2 p-3 text-xs text-ink-2">
-              <b className="text-ink">Secondary · {e.secondary_label ?? "time-to-quote"}</b> (Mann-Whitney U, skew-robust): median {mw.median_a.toFixed(1)} → {mw.median_b.toFixed(1)}, p ={" "}
-              {fmtP(mw.p_value)}, rank-biserial r = {mw.rank_biserial.toFixed(3)}, Cohen's d = {mw.cohens_d.toFixed(3)}
+              <b className="text-ink">Secondary · {e.secondary_label ?? "time-to-quote"}</b> (Mann-Whitney U, skew-robust): median {mw.median_a.toFixed(1)} → {mw.median_b.toFixed(1)}, p {fmtPEq(mw.p_value)}, rank-biserial r = {mw.rank_biserial.toFixed(3)}, Cohen's d = {mw.cohens_d.toFixed(3)}
             </div>
           )}
         </Card>
