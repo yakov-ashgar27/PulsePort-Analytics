@@ -8,6 +8,10 @@
 
 **Digital-experience analytics, statistical A/B testing and AI-model evaluation for a global maritime shipping customer portal** (in the spirit of *myZIM* / *Maersk* digital portals).
 
+### 🔗 [Live demo](https://yakov-ashgar27.github.io/PulsePort-Analytics/) · free, no install
+
+The demo is a static snapshot. CI rebuilds it on every push by running the real pipeline (seeded PostgreSQL → analytical SQL → SciPy engine), and the sample-size calculator runs in the browser with exact parity to the Python engine. For the full live API, run `docker compose up`.
+
 This is not a CRUD app or an LLM wrapper. Every number on the dashboard comes from one of three sources:
 
 | Layer | What it does | Where |
@@ -252,7 +256,7 @@ PULSEPORT_DATABASE_URL=... python -m scripts.smoke_test     # end-to-end against
 
 The tests check against **first principles, not against the engine itself**: hand-computed z, χ² = z², the textbook sample size, Evan Miller's closed form for P(B>A), the Wilson interval reference values, a power round-trip (n → power ≈ 0.80), the expected-loss identity, PDF normalisation, and that the seeded data reproduces its designed p-values.
 
-CI (`.github/workflows/ci.yml`) runs the unit tests, then a seeded-Postgres smoke test of every endpoint, then the frontend typecheck and build.
+CI (`.github/workflows/ci.yml`) runs the unit tests, then a seeded-Postgres smoke test of every endpoint, then the frontend typecheck, the calculator parity test and the build. `.github/workflows/pages.yml` exports the snapshots and publishes the live demo to the `gh-pages` branch at no cost.
 
 ---
 
