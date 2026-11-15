@@ -1,4 +1,4 @@
-import { Anchor, BarChart3, Bot, FileText, FlaskConical, Github, Info, Moon, Sun } from "lucide-react";
+import { Anchor, BarChart3, Bot, Database, FileText, FlaskConical, Github, Info, Moon, Sun } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { api, IS_DEMO, snapshotInfo } from "./api/client";
 import FunnelAnalytics from "./components/FunnelAnalytics";
@@ -7,14 +7,16 @@ import { ErrorState, Loading } from "./components/ui";
 import { useApi } from "./hooks/useApi";
 import type { Filters } from "./types/analytics";
 
+const DataStudio = lazy(() => import("./components/DataStudio"));
 const AbTestLab = lazy(() => import("./components/AbTestLab"));
 const AiBenchmarkStudio = lazy(() => import("./components/AiBenchmarkStudio"));
 const ExecutiveBriefModal = lazy(() => import("./components/ExecutiveBriefModal"));
 
 const TABS = [
-  { id: "funnel", label: "Digital Funnel & Regions", Icon: BarChart3 },
-  { id: "ab", label: "A/B Testing Lab", Icon: FlaskConical },
-  { id: "ai", label: "AI Evaluation & ROI", Icon: Bot },
+  { id: "studio", label: "Your Data", Icon: Database, demo: false },
+  { id: "funnel", label: "Demo · Funnel & Regions", Icon: BarChart3, demo: true },
+  { id: "ab", label: "Demo · A/B Lab", Icon: FlaskConical, demo: true },
+  { id: "ai", label: "Demo · AI Evaluation", Icon: Bot, demo: true },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -32,7 +34,7 @@ function readTheme(): "dark" | "light" {
 
 function readTab(): TabId {
   const h = window.location.hash.slice(1);
-  return (TABS.find((t) => t.id === h)?.id ?? "funnel") as TabId;
+  return (TABS.find((t) => t.id === h)?.id ?? "studio") as TabId;
 }
 
 export default function App() {
@@ -66,7 +68,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-[15px] leading-tight font-semibold text-ink">PulsePort Analytics</h1>
-              <p className="text-[11px] text-ink-3">Digital experience · Statistical A/B testing · AI evaluation</p>
+              <p className="text-[11px] text-ink-3">Funnels · A/B testing · AI evaluation, on your data</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -77,12 +79,14 @@ export default function App() {
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
+            {tab !== "studio" && (
             <button
-              onClick={() => setBriefOpen(true)}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 dark:text-[#04261b]"
-            >
-              <FileText className="h-4 w-4" aria-hidden /> Generate Management Brief
-            </button>
+                onClick={() => setBriefOpen(true)}
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 dark:text-[#04261b]"
+              >
+                <FileText className="h-4 w-4" aria-hidden /> Generate Management Brief
+              </button>
+            )}
           </div>
         </div>
         <nav className="mx-auto flex max-w-[1440px] gap-1 overflow-x-auto px-4 sm:px-6" role="tablist" aria-label="Sections">
@@ -103,40 +107,49 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-[1440px] space-y-5 px-4 py-5 sm:px-6">
-        {IS_DEMO && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-s1/40 bg-s1/10 px-4 py-2.5 text-xs text-ink-2">
-            <Info className="h-4 w-4 shrink-0 text-s1" aria-hidden />
-            <span>
-              <b className="text-ink">Static live demo.</b> Every figure was computed by the real pipeline (PostgreSQL → SQL → SciPy) in CI
-              {snap.data ? ` on ${snap.data.generated_at.slice(0, 10)}` : ""}. Run <code className="font-mono">docker compose up</code> for the
-              full interactive API.
-            </span>
-            <a
-              href="https://github.com/yakov-ashgar27/PulsePort-Analytics"
-              className="ml-auto inline-flex items-center gap-1 font-medium text-ink hover:underline"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Github className="h-3.5 w-3.5" aria-hidden /> Source
-            </a>
-          </div>
-        )}
-        {meta.error ? (
-          <ErrorState error={meta.error} onRetry={meta.reload} />
-        ) : !meta.data ? (
-          <Loading label="Connecting to analytics API…" />
+        {tab === "studio" ? (
+          <Suspense fallback={<Loading />}>
+            <DataStudio />
+          </Suspense>
         ) : (
           <>
-            <KpiOverview filters={filters} slaMs={meta.data.quote_sla_ms} />
-            <Suspense fallback={<Loading />}>
-              {tab === "funnel" && <FunnelAnalytics filters={filters} setFilters={setFilters} meta={meta.data} />}
-              {tab === "ab" && <AbTestLab />}
-              {tab === "ai" && <AiBenchmarkStudio />}
-            </Suspense>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-s1/40 bg-s1/10 px-4 py-2.5 text-xs text-ink-2">
+              <Info className="h-4 w-4 shrink-0 text-s1" aria-hidden />
+              <span>
+                <b className="text-ink">Demo dataset:</b> a synthetic maritime customer portal (50k sessions) with known ground truth, analysed by the full
+                PostgreSQL → SQL → SciPy pipeline{IS_DEMO && snap.data ? ` (snapshot ${snap.data.generated_at.slice(0, 10)})` : ""}. To analyse real data, open{" "}
+                <button className="font-semibold text-ink underline" onClick={() => setTab("studio")}>
+                  Your Data
+                </button>
+                .
+              </span>
+              <a
+                href="https://github.com/yakov-ashgar27/PulsePort-Analytics"
+                className="ml-auto inline-flex items-center gap-1 font-medium text-ink hover:underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Github className="h-3.5 w-3.5" aria-hidden /> Source
+              </a>
+            </div>
+            {meta.error ? (
+              <ErrorState error={meta.error} onRetry={meta.reload} />
+            ) : !meta.data ? (
+              <Loading label="Connecting to analytics API…" />
+            ) : (
+              <>
+                <KpiOverview filters={filters} slaMs={meta.data.quote_sla_ms} />
+                <Suspense fallback={<Loading />}>
+                  {tab === "funnel" && <FunnelAnalytics filters={filters} setFilters={setFilters} meta={meta.data} />}
+                  {tab === "ab" && <AbTestLab />}
+                  {tab === "ai" && <AiBenchmarkStudio />}
+                </Suspense>
+              </>
+            )}
           </>
         )}
         <footer className="pt-4 pb-8 text-center text-[11px] text-ink-3">
-          Synthetic portal data for demonstration · Statistics computed with SciPy / NumPy · Aggregations in PostgreSQL 16
+          Your data is analysed locally in the browser · Demo tabs use synthetic data · Statistics verified against SciPy
         </footer>
       </main>
 

@@ -166,7 +166,8 @@ export interface ExperimentAnalysis {
   power_at_mde: number;
   frequentist: Frequentist;
   bayesian: Bayesian;
-  time_to_quote: ContinuousTest;
+  time_to_quote: ContinuousTest | null;
+  secondary_label?: string;
   decision: Decision;
 }
 

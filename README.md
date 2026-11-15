@@ -6,11 +6,33 @@
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![SciPy](https://img.shields.io/badge/SciPy-stats-8CAAE6?logo=scipy&logoColor=white)
 
-**Digital-experience analytics, statistical A/B testing and AI-model evaluation for a global maritime shipping customer portal** (in the spirit of *myZIM* / *Maersk* digital portals).
+**Analyse your own product data (funnels, A/B tests and AI-model evaluations) with rigorous statistics and plain-language insights.** It works for any product or industry, and the full pipeline ships with a maritime-portal demo (in the spirit of *myZIM* / *Maersk*).
 
-### 🔗 [Live demo](https://yakov-ashgar27.github.io/PulsePort-Analytics/) · free, no install
+### 🔗 [Open the app](https://yakov-ashgar27.github.io/PulsePort-Analytics/) · free, no install, no sign-up
 
-The demo is a static snapshot. CI rebuilds it on every push by running the real pipeline (seeded PostgreSQL → analytical SQL → SciPy engine), and the sample-size calculator runs in the browser with exact parity to the Python engine. For the full live API, run `docker compose up`.
+## Data Studio: bring your own data
+
+| Step | What happens |
+|---|---|
+| **1. Connect** | Upload a CSV, paste a table copied from Excel or Google Sheets, or connect a **Google Sheet / public CSV URL**. Re-connect any time to refresh with live data. |
+| **2. Detect & map** | Columns are profiled (id, timestamp, category, number, boolean) and the dataset type is detected. Every mapping can be changed, and any column names work. |
+| **3. Analyse** | The same statistics as the Python engine run **in your browser**, verified against SciPy on 21 test groups. Your data is never uploaded. |
+| **4. Act** | Insights are ranked by severity and business impact. Export a Markdown report or a CSV of the results. |
+
+**Supported datasets**
+
+| Type | Minimum columns | What you get |
+|---|---|---|
+| **Event log / funnel** | session or user id, event name (optional: timestamp, latency, up to 3 segment columns) | Ordered funnel. Every segment **and segment pair** (e.g. country × device) is tested at every step against everyone else, with Benjamini–Hochberg FDR control and an estimate of lost conversions. You also get the latency ↔ abandonment link (Holm-adjusted), a daily trend with a 7-day MA, and a week-over-week change alert. |
+| **A/B test, per user** | variant, converted 0/1 (optional: numeric metric, timestamp, segments) | Sample-ratio-mismatch check, z / χ² / **Fisher exact** for small samples, Katz CI, Holm correction for more than two variants, Beta-Binomial P(B>A) and expected loss, power at your MDE, days remaining, Mann-Whitney and Welch on the metric, effect reversals by segment, and a GO / NO-GO / KEEP RUNNING / STOP verdict. |
+| **A/B test, summary** | variant, users, conversions | The same, from aggregated counts. |
+| **AI evaluation log** | model, score (optional: hallucination flag, latency, cost, category) | Mean score with t-CI, Wilson CI on hallucination, Kruskal-Wallis, Welch on the top two, χ² on safety, a category leaderboard, a cost trade-off and a guardrail verdict. |
+
+Five sample datasets ship with the app (shipping portal, **e-commerce checkout**, A/B per user, A/B summary, AI evaluation) so anyone can try it in one click.
+
+## Demo: the full server pipeline
+
+The *Demo* tabs show the production architecture on a synthetic 50,000-session maritime portal with known ground truth. Data flows PostgreSQL 16 → analytical SQL → FastAPI → SciPy engine. The live site serves a static snapshot that CI rebuilds on every push. For the full live API, run `docker compose up`.
 
 This is not a CRUD app or an LLM wrapper. Every number on the dashboard comes from one of three sources:
 
@@ -248,6 +270,10 @@ Filters on analytics endpoints: `region`, `device_type`, `date_from`, `date_to` 
 ---
 
 ## Testing
+
+**Browser engine:** `cd frontend && npm test` runs 21 test groups. They check the TypeScript statistics against SciPy reference values (erfc to 1e-12, incomplete beta, t, χ², Fisher exact, Mann-Whitney with ties, Kruskal-Wallis, BH/Holm, Wilson, Bayesian P(B>A) to 1e-6), plus end-to-end Data Studio runs on every sample dataset. To regenerate the references, run `python -m scripts.make_stats_fixtures` (backend).
+
+**Python engine:**
 
 ```bash
 cd backend && python -m pytest -v                           # 40+ math / decision-rule tests

@@ -291,7 +291,7 @@ function HallucinationBars({ models, order, guardrail }: { models: ModelMetrics[
   );
 }
 
-function CategoryMatrix({ cells, order }: { cells: CategoryCell[]; order: string[] }) {
+export function CategoryMatrix({ cells, order }: { cells: CategoryCell[]; order: string[] }) {
   const categories = [...new Set(cells.map((c) => c.category))];
   const lookup = new Map(cells.map((c) => [`${c.model}|${c.category}`, c]));
   const vals = cells.map((c) => Number(c.mean_accuracy));
@@ -344,7 +344,7 @@ function CategoryMatrix({ cells, order }: { cells: CategoryCell[]; order: string
   );
 }
 
-function TestRow({ name, stat, p }: { name: string; stat: string; p: number | null }) {
+export function TestRow({ name, stat, p }: { name: string; stat: string; p: number | null }) {
   const sig = p != null && p < 0.05;
   return (
     <li className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 px-3 py-2.5">

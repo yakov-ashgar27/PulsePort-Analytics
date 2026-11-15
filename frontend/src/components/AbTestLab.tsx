@@ -71,7 +71,7 @@ export default function AbTestLab() {
   );
 }
 
-function ExperimentDetail({ e }: { e: ExperimentAnalysis }) {
+export function ExperimentDetail({ e }: { e: ExperimentAnalysis }) {
   const f = e.frequentist;
   const b = e.bayesian;
   const mw = e.time_to_quote;
@@ -91,7 +91,12 @@ function ExperimentDetail({ e }: { e: ExperimentAnalysis }) {
         </div>
         <p className="mt-2 max-w-4xl text-sm text-ink-2">{e.decision.rationale}</p>
         <p className="mt-2 text-xs text-ink-3">
-          <b>Hypothesis:</b> {e.hypothesis} · Running {e.days_running} days · ≈{fmtInt(e.daily_traffic)} users/day
+          {e.hypothesis && (
+            <>
+              <b>Hypothesis:</b> {e.hypothesis} ·{" "}
+            </>
+          )}
+          {e.days_running > 0 ? `Running ${e.days_running} days · ≈${fmtInt(e.daily_traffic)} users/day` : "No timestamps: duration unknown"}
         </p>
       </section>
 
@@ -131,10 +136,12 @@ function ExperimentDetail({ e }: { e: ExperimentAnalysis }) {
 
           <UpliftInterval lo={f.uplift_ci_low} hi={f.uplift_ci_high} point={f.relative_uplift} label="95% CI of relative uplift" />
 
-          <div className="mt-4 rounded-lg border border-line bg-surface-2 p-3 text-xs text-ink-2">
-            <b className="text-ink">Secondary · time-to-quote</b> (Mann-Whitney U, skew-robust): median {mw.median_a.toFixed(0)} s → {mw.median_b.toFixed(0)} s, p ={" "}
-            {fmtP(mw.p_value)}, rank-biserial r = {mw.rank_biserial.toFixed(3)}, Cohen's d = {mw.cohens_d.toFixed(3)}
-          </div>
+          {mw && (
+            <div className="mt-4 rounded-lg border border-line bg-surface-2 p-3 text-xs text-ink-2">
+              <b className="text-ink">Secondary · {e.secondary_label ?? "time-to-quote"}</b> (Mann-Whitney U, skew-robust): median {mw.median_a.toFixed(1)} → {mw.median_b.toFixed(1)}, p ={" "}
+              {fmtP(mw.p_value)}, rank-biserial r = {mw.rank_biserial.toFixed(3)}, Cohen's d = {mw.cohens_d.toFixed(3)}
+            </div>
+          )}
         </Card>
 
         <Card
