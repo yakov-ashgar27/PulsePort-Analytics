@@ -1,7 +1,7 @@
 import { AlertTriangle, ArrowDown, Gauge, TableProperties } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { api } from "../api/client";
+import { api, IS_DEMO } from "../api/client";
 import { useApi } from "../hooks/useApi";
 import { fmtInt, fmtMs, fmtP, fmtPct100, stageLabel } from "../lib/format";
 import type { Filters, Meta, RegionRow, TrendPoint } from "../types/analytics";
@@ -38,8 +38,12 @@ export default function FunnelAnalytics({ filters, setFilters, meta }: Props) {
           allLabel="All devices"
           onChange={(device_type) => setFilters({ ...filters, device_type })}
         />
-        <DateField label="From" value={filters.date_from} onChange={(date_from) => setFilters({ ...filters, date_from })} />
-        <DateField label="To (exclusive)" value={filters.date_to} onChange={(date_to) => setFilters({ ...filters, date_to })} />
+        {!IS_DEMO && (
+          <>
+            <DateField label="From" value={filters.date_from} onChange={(date_from) => setFilters({ ...filters, date_from })} />
+            <DateField label="To (exclusive)" value={filters.date_to} onChange={(date_to) => setFilters({ ...filters, date_to })} />
+          </>
+        )}
         <button
           className="h-9 rounded-lg border border-line px-3 text-sm text-ink-2 hover:bg-surface-2"
           onClick={() => setFilters({ region: null, device_type: null, date_from: null, date_to: null })}

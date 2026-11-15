@@ -1,6 +1,6 @@
-import { Anchor, BarChart3, Bot, FileText, FlaskConical, Moon, Sun } from "lucide-react";
+import { Anchor, BarChart3, Bot, FileText, FlaskConical, Github, Info, Moon, Sun } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { api } from "./api/client";
+import { api, IS_DEMO, snapshotInfo } from "./api/client";
 import FunnelAnalytics from "./components/FunnelAnalytics";
 import KpiOverview from "./components/KpiOverview";
 import { ErrorState, Loading } from "./components/ui";
@@ -41,6 +41,7 @@ export default function App() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [briefOpen, setBriefOpen] = useState(false);
   const meta = useApi((s) => api.meta(s), []);
+  const snap = useApi((s) => (IS_DEMO ? snapshotInfo(s) : Promise.resolve(null)), []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -102,6 +103,24 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-[1440px] space-y-5 px-4 py-5 sm:px-6">
+        {IS_DEMO && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-s1/40 bg-s1/10 px-4 py-2.5 text-xs text-ink-2">
+            <Info className="h-4 w-4 shrink-0 text-s1" aria-hidden />
+            <span>
+              <b className="text-ink">Static live demo.</b> Every figure was computed by the real pipeline (PostgreSQL → SQL → SciPy) in CI
+              {snap.data ? ` on ${snap.data.generated_at.slice(0, 10)}` : ""}. Run <code className="font-mono">docker compose up</code> for the
+              full interactive API.
+            </span>
+            <a
+              href="https://github.com/yakov-ashgar27/PulsePort-Analytics"
+              className="ml-auto inline-flex items-center gap-1 font-medium text-ink hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Github className="h-3.5 w-3.5" aria-hidden /> Source
+            </a>
+          </div>
+        )}
         {meta.error ? (
           <ErrorState error={meta.error} onRetry={meta.reload} />
         ) : !meta.data ? (

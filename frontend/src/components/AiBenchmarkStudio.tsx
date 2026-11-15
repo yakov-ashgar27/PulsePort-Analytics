@@ -16,7 +16,7 @@ import {
   YAxis,
   ZAxis,
 } from "recharts";
-import { api } from "../api/client";
+import { api, IS_DEMO } from "../api/client";
 import { useApi } from "../hooks/useApi";
 import { fmtInt, fmtMs, fmtP, fmtPct, fmtUsd } from "../lib/format";
 import type { Benchmark, CategoryCell, ModelMetrics } from "../types/analytics";
@@ -73,7 +73,8 @@ export default function AiBenchmarkStudio() {
           {runError && <span className="text-xs text-critical">{runError.message}</span>}
           <button
             onClick={runBatch}
-            disabled={running}
+            disabled={running || IS_DEMO}
+            title={IS_DEMO ? "Live evaluation batches run in the full Docker deployment" : undefined}
             className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 disabled:opacity-60 dark:text-[#04261b]"
           >
             {running ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <PlayCircle className="h-4 w-4" aria-hidden />}

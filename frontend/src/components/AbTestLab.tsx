@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api } from "../api/client";
+import { api, IS_DEMO } from "../api/client";
 import { useApi, useDebounced } from "../hooks/useApi";
 import { fmtInt, fmtP, fmtPct, fmtProb } from "../lib/format";
 import type { ExperimentAnalysis, PdfPoint, PowerAnalysisRequest } from "../types/analytics";
@@ -293,7 +293,7 @@ function SampleSizeCalculator({ defaultBaseline, defaultTraffic }: { defaultBase
           <Calculator className="h-4 w-4 text-ink-3" aria-hidden /> Sample size &amp; MDE calculator
         </span>
       }
-      subtitle="Fleiss two-proportion formula · POST /api/stats/power-analysis"
+      subtitle={IS_DEMO ? "Fleiss two-proportion formula · computed in-browser (parity-tested against the SciPy engine)" : "Fleiss two-proportion formula · POST /api/stats/power-analysis"}
     >
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-3 lg:col-span-2">
