@@ -20,6 +20,8 @@
 
 </div>
 
+📐 **System design:** [DFD (levels 0–1) and ERD](docs/DIAGRAMS.md), drawn from the code.
+
 ---
 
 ## Contents
