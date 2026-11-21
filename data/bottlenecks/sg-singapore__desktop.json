@@ -1,0 +1,1 @@
+[{"region":"SG - Singapore","searches":3323,"quotes":2206,"quote_rate_pct":66.39,"global_quote_rate_pct":66.39,"p95_latency_ms":1746.0,"p95_mobile_ms":null,"p95_desktop_ms":1746.0,"global_p95_ms":1746.0,"latency_conv_corr":-0.066,"cross_region_corr":null,"sla_breach":false,"is_bottleneck":false,"p_value_vs_rest":null,"rate_diff_vs_rest_pp":null,"significant":false}]

@@ -1,0 +1,1 @@
+[{"region":"CN - Shanghai","searches":6648,"quotes":3624,"quote_rate_pct":54.51,"global_quote_rate_pct":54.51,"p95_latency_ms":5188.0,"p95_mobile_ms":6544.0,"p95_desktop_ms":2334.0,"global_p95_ms":5188.0,"latency_conv_corr":-0.362,"cross_region_corr":null,"sla_breach":true,"is_bottleneck":false,"p_value_vs_rest":null,"rate_diff_vs_rest_pp":null,"significant":false}]

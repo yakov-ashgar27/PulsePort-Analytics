@@ -1,0 +1,1 @@
+[{"region":"US - Norfolk","device_type":"Desktop","sessions":5825,"searches":4179,"quotes":2803,"bookings":898,"search_to_quote_pct":67.07,"booking_conversion_pct":15.42,"p50_latency_ms":812.0,"p95_latency_ms":1722.0,"global_search_to_quote_pct":67.07,"delta_vs_global_pp":0.0,"dropoff_rank":1,"sla_breach":false}]
